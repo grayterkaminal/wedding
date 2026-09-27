@@ -1,0 +1,85 @@
+/* Живой свет, спокойные блики и глубина зимнего фона. */
+.ambient-section {
+  isolation: isolate;
+}
+.ambient-section > .container {
+  position: relative;
+  z-index: 1;
+}
+.ambient-light {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.ambient-light::before {
+  content: "";
+  position: absolute;
+  inset: -15% -25%;
+  background:
+    radial-gradient(ellipse at 75% 35%, #ffffff85 0%, #d9eafb33 22%, transparent 46%),
+    radial-gradient(ellipse at 20% 70%, #bdd6ed33 0%, transparent 40%);
+  animation: drifting-light 16s ease-in-out infinite alternate;
+}
+.ambient-glint {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  left: 7%;
+  top: 16%;
+  opacity: 0;
+  animation: crystal-breath 8s ease-in-out infinite;
+  animation-delay: calc(var(--glint-index) * -1.7s);
+}
+.ambient-glint:nth-child(2) { left: 89%; top: 10%; width: 42px; height: 42px; }
+.ambient-glint:nth-child(3) { left: 96%; top: 57%; width: 22px; height: 22px; }
+.ambient-glint:nth-child(4) { left: 3%; top: 76%; }
+.ambient-glint:nth-child(5) { left: 79%; top: 90%; width: 36px; height: 36px; }
+.ambient-glint::before,
+.ambient-glint::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 50% 4% at center, #fff 10%, #9ab8d1b3 32%, transparent 100%);
+}
+.ambient-glint::after {
+  transform: rotate(90deg);
+}
+.ambient-light::before,
+.ambient-glint {
+  animation-play-state: paused;
+}
+.ambient-awake .ambient-light::before,
+.ambient-awake .ambient-glint {
+  animation-play-state: running;
+}
+.motion-asleep .ambient-light::before,
+.motion-asleep .ambient-glint {
+  animation-play-state: paused;
+}
+@keyframes drifting-light {
+  from { transform: translate3d(-6%, -2%, 0) rotate(-3deg); opacity: 0.45; }
+  to { transform: translate3d(6%, 3%, 0) rotate(3deg); opacity: 0.95; }
+}
+@keyframes crystal-breath {
+  0%, 100% { opacity: 0.12; transform: translateY(3px) scale(0.65); }
+  45% { opacity: 0.82; transform: translateY(-3px) scale(1); }
+  65% { opacity: 0.35; transform: translateY(-1px) scale(0.8); }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .hero-backdrop {
+    transform: scale(1.025);
+    transition: transform 1.6s cubic-bezier(0.2, 0.65, 0.3, 1);
+  }
+}
+@media (min-width: 761px) {
+  .motion-ready .couple-composition.reveal:not(.is-visible),
+  .motion-ready .venue-photo.reveal:not(.is-visible) {
+    transform: translate(24px, 32px) rotate(-1deg);
+  }
+}
+@media (prefers-reduced-motion: reduce), print {
+  .ambient-light { display: none; }
+  .hero-backdrop { transform: none !important; }
+}

@@ -442,7 +442,8 @@ summary {
   height: auto;
   aspect-ratio: 1.16;
   object-fit: cover;
-  object-position: 53% center;
+  /* The original portrait stays untouched; the far-right trouser is outside the crop. */
+  object-position: 0% center;
   border-radius: 2px;
 }
 .intro-copy h2 {
@@ -467,6 +468,25 @@ summary {
 }
 .date-section {
   background: linear-gradient(130deg, #e8f0f7, #f2f6fa 60%, #e9f0f7);
+  position: relative;
+}
+.date-section::before,
+.program::before,
+.chat-section::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: min(60vw, 760px);
+  height: 320px;
+  background: url("../assets/crystal-threads.svg") top right / contain no-repeat;
+  opacity: 0.4;
+  mask-image: linear-gradient(to left, #000 25%, transparent 100%);
+  pointer-events: none;
+}
+.date-section > .container,
+.program > .container,
+.chat-section > .container {
   position: relative;
 }
 .date-grid {
@@ -607,13 +627,54 @@ summary {
   color: var(--muted);
 }
 .venue-section {
+  position: relative;
+  overflow: hidden;
   background: #dce7f1;
 }
 .venue-grid {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 80px;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+  gap: 35px 80px;
+  align-items: start;
+}
+.venue-heading {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: end;
+}
+.venue-photo {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  position: relative;
+  margin: 0;
+  padding: 9px;
+  background: #fff9;
+  border: 1px solid #fff;
+  border-radius: 3px;
+  box-shadow: 0 22px 55px #35557524;
+  transform: rotate(1deg);
+}
+.venue-photo:before {
+  content: "";
+  position: absolute;
+  inset: 13px -12px -11px 12px;
+  z-index: -1;
+  border: 1px solid #b5cadbc4;
+  transform: rotate(-2.5deg);
+  pointer-events: none;
+}
+.venue-photo img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 0.92;
+  object-fit: cover;
+  object-position: center 43%;
+}
+.venue-photo figcaption {
+  padding: 13px 13px 5px;
+  text-align: right;
+  font: italic 22px var(--serif);
+  color: #57758d;
 }
 .venue-name {
   font-size: clamp(60px, 6vw, 82px);
@@ -630,8 +691,10 @@ summary {
   color: #536c82;
 }
 .venue-info {
+  grid-column: 1;
+  grid-row: 2;
   max-width: 420px;
-  padding-left: 30px;
+  padding-left: 0;
 }
 .location-icon {
   width: 34px;
@@ -695,7 +758,15 @@ details[open] .plus {
   margin-top: 25px;
 }
 .program {
+  position: relative;
+  overflow: hidden;
   background: radial-gradient(ellipse at 100% 0%, #e4eef7aa, transparent 50%), #f9fbfd;
+}
+.program::before {
+  left: 0;
+  right: auto;
+  opacity: 0.34;
+  transform: scaleX(-1);
 }
 .wishes-section {
   background: radial-gradient(ellipse at 0% 80%, #edf4f9, transparent 45%), var(--paper);
@@ -706,8 +777,21 @@ details[open] .plus {
   gap: 34px;
 }
 .timeline article {
+  position: relative;
   border-top: 1px solid var(--line);
   padding-top: 24px;
+}
+.timeline article::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  border: 1px solid #98b1c6;
+  background: #f9fbfd;
+  box-shadow: 0 0 10px #b7cedd;
+  transform: rotate(45deg);
 }
 .timeline-time {
   display: block;
@@ -834,8 +918,8 @@ details[open] .plus {
 }
 .wishes-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 48px 80px;
+  grid-template-columns: 1fr;
+  gap: 48px;
 }
 .wish {
   padding-top: 28px;
@@ -856,7 +940,6 @@ details[open] .plus {
   color: var(--muted);
 }
 .wish-flowers {
-  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: 1fr 1.1fr;
   gap: 60px;
@@ -869,12 +952,29 @@ details[open] .plus {
 .wish-flowers h3 {
   margin-bottom: 0;
 }
+.wish-surprise {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 60px;
+}
+.wish-surprise h3 {
+  margin-bottom: 0;
+}
+.wish-surprise > div:last-child {
+  padding-top: 7px;
+}
 .wish .text-link {
   margin-top: 20px;
 }
 .chat-section {
+  position: relative;
+  overflow: hidden;
   background:
     radial-gradient(ellipse at 10% 100%, #d5e3f1 0%, transparent 70%), #edf3f8;
+}
+.chat-section::before {
+  right: -50px;
+  opacity: 0.34;
 }
 .chat-grid {
   display: grid;
@@ -1232,6 +1332,9 @@ fieldset {
 .motion-ready .qr-block.reveal.is-visible {
   transform: rotate(3deg);
 }
+.motion-ready .venue-photo.reveal.is-visible {
+  transform: rotate(1deg);
+}
 
 @media (max-width: 1050px) {
   .intro-grid {
@@ -1444,7 +1547,30 @@ fieldset {
   }
   .venue-grid {
     grid-template-columns: 1fr;
-    gap: 35px;
+    gap: 32px;
+  }
+  .venue-heading,
+  .venue-photo,
+  .venue-info {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .venue-photo {
+    width: min(100% - 14px, 450px);
+    margin: 8px auto 0;
+  }
+  .date-section::before,
+  .program::before,
+  .chat-section::before {
+    width: min(92vw, 440px);
+    height: 190px;
+    opacity: 0.23;
+  }
+  .venue-photo img {
+    aspect-ratio: 1.06;
+  }
+  .venue-photo figcaption {
+    font-size: 19px;
   }
   .venue-name {
     font-size: 64px;
@@ -1557,6 +1683,10 @@ fieldset {
     grid-template-columns: 1fr;
     gap: 22px;
     padding: 28px 24px;
+  }
+  .wish-surprise {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
   .wish-flowers h3 {
     margin-bottom: 0;
