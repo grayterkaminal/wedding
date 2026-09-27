@@ -124,31 +124,37 @@
   });
 
   for (const c of C.contacts) {
-    const el = make("article", "contact reveal");
-    const img = make("img");
-    img.src = `assets/images/${c.photo}`;
-    img.alt = c.name;
-    img.width = 130;
-    img.height = 174;
-    img.loading = "lazy";
-    img.style.objectPosition = c.position;
-    const text = make("div");
+    const el = make("article", `contact reveal${c.photo ? "" : " contact--text"}`);
+    if (c.photo) {
+      const img = make("img");
+      img.src = `assets/images/${c.photo}`;
+      img.alt = c.name;
+      img.width = 130;
+      img.height = 174;
+      img.loading = "lazy";
+      img.style.objectPosition = c.position;
+      el.append(img);
+    }
+    const text = make("div", "contact-content");
     const a = make("a", "text-link");
     a.href = "tel:" + c.phone;
     a.textContent = c.phone.replace(
       /(\+7)(\d{3})(\d{3})(\d{2})(\d{2})/,
-      "$1 $2 $3 $4 $5",
+      "$1 $2 $3-$4-$5",
     );
     const arrow = make("span", "", "↗");
     arrow.setAttribute("aria-hidden", "true");
     a.append(arrow);
+    const meta = make("div", "contact-meta");
+    meta.append(make("p", "contact-role", c.role));
+    if (c.when) meta.append(make("p", "contact-when", c.when));
     text.append(
-      make("p", "contact-role", c.role),
+      meta,
       make("h3", "", c.name),
       make("p", "contact-note", c.note),
       a,
     );
-    el.append(img, text);
+    el.append(text);
     $("[data-contacts]").append(el);
   }
   function choice(text, name, type) {
@@ -189,7 +195,7 @@
     $("#preferences").hidden = absent;
     $$("input", $("#preferences")).forEach((e) => (e.disabled = absent));
   }
-  // Восстанавливаем только незавершённый ответ; браузер может запрещать localStorage.
+  // Восстанавливаем только незавершенный ответ; браузер может запрещать localStorage.
   try {
     const saved = JSON.parse(store.get(draftKey) || "null");
     if (saved) {
@@ -241,7 +247,7 @@
     } catch {
       store.set(draftKey, JSON.stringify(data));
       status.textContent =
-        "Сейчас не получилось отправить анкету. Ваши ответы остались в форме. Попробуйте ещё раз или скопируйте их и передайте организатору.";
+        "Сейчас не получилось отправить анкету. Ваши ответы остались в форме. Попробуйте еще раз или скопируйте их и передайте организатору.";
       copy.hidden = false;
     } finally {
       clearTimeout(timeout);
@@ -282,18 +288,6 @@
   });
 
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
-  const motionButton = $(".motion-toggle");
-  let paused = store.get("wedding-motion") === "paused";
-  function setMotionUI() {
-    document.body.classList.toggle("motion-paused", paused);
-    motionButton.setAttribute("aria-pressed", String(paused));
-    motionButton.setAttribute(
-      "aria-label",
-      paused ? "Включить анимацию" : "Приостановить анимацию",
-    );
-    motionButton.textContent = paused ? "Включить анимацию" : "Пауза анимации";
-  }
-  setMotionUI();
   if ("IntersectionObserver" in window && !reduced.matches) {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -312,7 +306,7 @@
     $$(".reveal").forEach((e) => observer.observe(e));
     document.body.classList.add("motion-ready");
   }
-  // Небольшое число частиц только на первом экране; вне экрана цикл останавливается.
+  // Снег движется автоматически; вне экрана и в скрытой вкладке цикл отдыхает.
   const canvas = $("#snow"),
     ctx = canvas.getContext("2d");
   let width = 0,
@@ -329,32 +323,64 @@
     canvas.width = width * dpr;
     canvas.height = height * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    flakes = Array.from({ length: width < 760 ? 24 : 48 }, () => ({
+    flakes = Array.from({ length: width < 760 ? 42 : 76 }, () => ({
       x: Math.random() * width,
       y: Math.random() * height,
-      r: 0.7 + Math.random() * 1.7,
-      speed: 8 + Math.random() * 14,
+      r: 1.1 + Math.random() * 2,
+      crystal: Math.random() < 0.18,
+      speed: 9 + Math.random() * 15,
       phase: Math.random() * Math.PI * 2,
-      alpha: 0.35 + Math.random() * 0.4,
+      alpha: 0.5 + Math.random() * 0.4,
     }));
+  }
+  function paintFlake(f, now) {
+    ctx.save();
+    ctx.translate(f.x, f.y);
+    ctx.globalAlpha = f.alpha;
+    ctx.shadowColor = "rgba(82,119,150,.35)";
+    ctx.shadowBlur = f.crystal ? 3 : 2;
+    if (f.crystal) {
+      ctx.rotate(f.phase + now / 35000);
+      ctx.lineWidth = 0.9;
+      ctx.strokeStyle = "#fff";
+      const size = f.r * 2.3;
+      ctx.beginPath();
+      for (let arm = 0; arm < 6; arm++) {
+        const angle = arm * Math.PI / 3;
+        const x = Math.cos(angle), y = Math.sin(angle);
+        ctx.moveTo(0, 0);
+        ctx.lineTo(x * size, y * size);
+        for (const side of [-1, 1]) {
+          ctx.moveTo(x * size * 0.56, y * size * 0.56);
+          ctx.lineTo(
+            x * size * 0.78 - y * size * 0.22 * side,
+            y * size * 0.78 + x * size * 0.22 * side,
+          );
+        }
+      }
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.arc(0, 0, f.r, 0, Math.PI * 2);
+      ctx.fillStyle = "#fff";
+      ctx.fill();
+    }
+    ctx.restore();
   }
   function tick(now) {
     raf = 0;
-    if (paused || reduced.matches || document.hidden || !heroVisible) return;
+    if (reduced.matches || document.hidden || !heroVisible) return;
     const delta = last ? Math.min((now - last) / 1000, 0.05) : 0;
     last = now;
     ctx.clearRect(0, 0, width, height);
     flakes.forEach((f) => {
       f.y += f.speed * delta;
-      f.x += Math.sin(now / 4000 + f.phase) * 3 * delta;
-      if (f.y > height + 5) {
-        f.y = -5;
+      f.x += Math.sin(now / 4000 + f.phase) * 5 * delta;
+      if (f.y > height + 10) {
+        f.y = -10;
         f.x = Math.random() * width;
       }
-      ctx.beginPath();
-      ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,255,255,${f.alpha})`;
-      ctx.fill();
+      paintFlake(f, now);
     });
     raf = requestAnimationFrame(tick);
   }
@@ -362,8 +388,8 @@
     if (raf) cancelAnimationFrame(raf);
     raf = 0;
     last = 0;
-    if (reduced.matches || paused) ctx.clearRect(0, 0, width, height);
-    if (!paused && !reduced.matches && !document.hidden && heroVisible)
+    if (reduced.matches) ctx.clearRect(0, 0, width, height);
+    if (!reduced.matches && !document.hidden && heroVisible)
       raf = requestAnimationFrame(tick);
   }
   resize();
@@ -378,12 +404,6 @@
       heroVisible = e.isIntersecting;
       syncMotion();
     }).observe($("#home"));
-  motionButton.addEventListener("click", () => {
-    paused = !paused;
-    store.set("wedding-motion", paused ? "paused" : "running");
-    setMotionUI();
-    syncMotion();
-  });
   reduced.addEventListener("change", () => {
     if (reduced.matches) document.body.classList.remove("motion-ready");
     syncMotion();

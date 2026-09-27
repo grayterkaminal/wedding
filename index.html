@@ -35,12 +35,6 @@
   <body>
     <a class="skip-link" href="#invitation">Перейти к приглашению</a>
     <header class="site-header">
-      <a
-        href="#home"
-        class="monogram"
-        aria-label="Михаил и Екатерина — к началу"
-        >м<span>·</span>е</a
-      >
       <nav aria-label="Разделы приглашения">
         <a href="#date">Дата</a><a href="#venue">Место</a
         ><a href="#dress">Дресс-код</a><a href="#contacts">Контакты</a>
@@ -67,45 +61,35 @@
             >Листайте нашу историю <span aria-hidden="true">↓</span></a
           >
         </div>
-        <div class="hero-bottom" aria-hidden="true">
-          <span>СНЕГ · СВЕТ · ХРУСТАЛЬ</span><span>НЕМЧИНОВКА ПАРК</span>
-        </div>
-        <button
-          class="motion-toggle"
-          type="button"
-          aria-pressed="false"
-          aria-label="Приостановить анимацию"
-        >
-          Пауза анимации
-        </button>
       </section>
 
       <section class="section invitation" id="invitation">
         <div class="container intro-grid">
-          <figure class="couple-picture reveal">
-            <img
-              src="assets/images/couple.webp"
-              alt="Михаил и Екатерина"
-              width="1200"
-              height="800"
-              loading="lazy"
-            />
-            <figcaption>Михаил & Екатерина</figcaption>
-          </figure>
           <div class="intro-copy">
             <p class="eyebrow reveal">САМЫМ БЛИЗКИМ</p>
-            <h2 class="reveal">Дорогие<br /><em>наши люди!</em></h2>
-            <p class="lead reveal">
-              Есть моменты, которые становятся особенными благодаря тем, кто
-              рядом.
-            </p>
+            <h2 class="intro-heading reveal">
+              Есть моменты, которые становятся особенными
+              <em>благодаря тем, кто рядом.</em>
+            </h2>
             <p class="reveal">
-              12 декабря мы станем семьёй. И очень хотим провести этот день с
+              12 декабря мы станем семьей. И очень хотим провести этот день с
               вами — смеяться, обниматься, танцевать и создавать воспоминания,
               которые останутся с нами навсегда.
             </p>
             <p class="reveal">Приглашаем вас в нашу маленькую зимнюю сказку.</p>
             <div class="signature reveal">С любовью, Миша и Катя</div>
+          </div>
+          <div class="couple-composition reveal">
+            <figure class="couple-picture">
+              <img
+                src="assets/images/couple.webp"
+                alt="Михаил и Екатерина обнимаются"
+                width="1200"
+                height="800"
+                loading="lazy"
+              />
+            </figure>
+            <span class="ice-glint photo-glint" aria-hidden="true"></span>
           </div>
         </div>
       </section>
@@ -162,12 +146,9 @@
           </h2>
           <p class="reveal">
             Снежные ветви, переливы хрусталя, серебро и мягкое сияние свечей.
-            Нам хочется, чтобы этот вечер был красивым, тёплым и очень нашим.
+            Пусть за окнами будет зима, а рядом — любимые люди,
+            искренние улыбки и тепло, которое останется в воспоминаниях.
           </p>
-          <div class="atmosphere-words reveal">
-            <span>Иней</span><i>·</i><span>Хрусталь</span><i>·</i
-            ><span>Свет</span>
-          </div>
         </div>
       </section>
 
@@ -243,30 +224,27 @@
           <div class="section-heading">
             <p class="eyebrow reveal">ВМЕСТЕ В ЭТОТ ДЕНЬ</p>
             <h2 class="reveal">Наш <em>вечер</em></h2>
-            <p class="muted reveal">
-              Точное время каждого события появится чуть позже.
-            </p>
           </div>
           <div class="timeline">
             <article class="reveal">
-              <span class="timeline-number">01</span>
+              <time class="timeline-time" datetime="2026-12-12T15:00:00+03:00">15:00</time>
               <h3>Встреча гостей</h3>
               <p>Объятия, первые фотографии<br />и предвкушение праздника.</p>
             </article>
             <article class="reveal">
-              <span class="timeline-number">02</span>
+              <time class="timeline-time" datetime="2026-12-12T16:00:00+03:00">16:00</time>
               <h3>Церемония</h3>
               <p>Самые важные слова<br />в окружении самых близких.</p>
             </article>
             <article class="reveal">
-              <span class="timeline-number">03</span>
+              <time class="timeline-time" datetime="2026-12-12T17:00:00+03:00">17:00</time>
               <h3>Праздничный ужин</h3>
               <p>Тосты, сюрпризы, музыка<br />и танцы до самого вечера.</p>
             </article>
             <article class="reveal">
-              <span class="timeline-number">04</span>
-              <h3>Тёплый финал</h3>
-              <p>Ещё немного волшебства<br />и воспоминания с собой.</p>
+              <time class="timeline-time" datetime="2026-12-12T22:30:00+03:00">22:30</time>
+              <h3>Теплый финал</h3>
+              <p>Еще немного волшебства<br />и воспоминания с собой.</p>
             </article>
           </div>
         </div>
@@ -350,32 +328,49 @@
             <h2 class="reveal">Несколько <em>пожеланий</em></h2>
           </div>
           <div class="wishes-grid">
+            <article class="wish wish-flowers reveal">
+              <div>
+                <span class="little-number">01 / О ЦВЕТАХ</span>
+                <h3>Самое ценное —<br /><em>быть рядом</em></h3>
+              </div>
+              <div class="flowers-copy">
+                <p>
+                  Ваше присутствие — главное для нас. Будем благодарны, если
+                  в этот день вы придете без букетов.
+                </p>
+                <p>
+                  Подарок выбирайте по своему желанию. А если захочется
+                  дополнить его небольшим знаком внимания, пусть это будет
+                  что-то, что останется с нами надолго.
+                </p>
+              </div>
+            </article>
             <article class="wish reveal">
-              <span class="little-number">01 / ПОДАРКИ</span>
+              <span class="little-number">02 / ПОСЛАНИЕ В БУДУЩЕЕ</span>
               <h3>Послание<br /><em>в будущее</em></h3>
               <p>
-                Вместо букета можно подарить нам бутылку любимого напитка для
-                будущего семейного бара.
+                Одна из идей вместо букета — бутылка вашего любимого напитка
+                для будущего семейного бара.
               </p>
               <p>
-                Добавьте записку с поводом, когда её открыть: на годовщину,
+                Добавьте записку с поводом, когда ее открыть: на годовщину,
                 новоселье или в день большой мечты. Мы обязательно вспомним вас
                 в этот момент.
               </p>
             </article>
             <article class="wish reveal">
-              <span class="little-number">02 / СЮРПРИЗЫ</span>
+              <span class="little-number">03 / СЮРПРИЗЫ</span>
               <h3>Ваш маленький<br /><em>секрет</em></h3>
               <p>
                 Творческие поздравления, музыка и неожиданные номера очень
                 приветствуются!
               </p>
               <p>
-                Заранее расскажите о своей идее организатору или ведущему. Они
-                помогут с деталями и сохранят сюрприз от нас.
+                Заранее расскажите о своей идее нашему ведущему Льву.
+                Он поможет вписать ее в программу и сохранит сюрприз от нас.
               </p>
               <a class="text-link" href="#contacts"
-                >Связаться с организатором <span aria-hidden="true">↗</span></a
+                >Связаться с ведущим <span aria-hidden="true">↗</span></a
               >
             </article>
           </div>
@@ -389,7 +384,7 @@
             <h2 class="reveal">Этот день<br /><em>вашими глазами</em></h2>
             <p class="reveal">
               Мы уже собираемся в общем Telegram-чате. Здесь будут новости перед
-              свадьбой, ваши фотографии, видео и самые тёплые моменты вечера.
+              свадьбой, ваши фотографии, видео и самые теплые моменты вечера.
             </p>
             <a
               class="button reveal"
@@ -427,15 +422,11 @@
             <p class="eyebrow reveal">ВСЕГДА РЯДОМ</p>
             <h2 class="reveal">Вам <em>помогут</em></h2>
             <p class="reveal">
-              С вопросами о подготовке и сюрпризах можно обратиться к нашим
-              людям.
+              До свадьбы и в сам день рядом будут люди, которые помогут
+              с подготовкой, сюрпризами и любыми вопросами на площадке.
             </p>
           </div>
           <div class="contacts-grid" data-contacts></div>
-          <p class="coordinator-note reveal">
-            Контакт координатора, который будет помогать гостям в день свадьбы,
-            добавим ближе к дате.
-          </p>
         </div>
       </section>
 
@@ -445,12 +436,12 @@
             <p class="eyebrow reveal">БУДЕМ ЖДАТЬ ВАШ ОТВЕТ</p>
             <h2 class="reveal">Подтвердите<br /><em>присутствие</em></h2>
             <p class="reveal">
-              Подтвердите, пожалуйста, своё присутствие и расскажите о
+              Подтвердите, пожалуйста, свое присутствие и расскажите о
               предпочтениях. Так мы сможем позаботиться о каждом.
             </p>
             <p class="small muted reveal">
-              Одна анкета — один гость.<br />Если вы приходите вдвоём, заполните
-              её для каждого отдельно.
+              Одна анкета — один гость.<br />Если вы приходите вдвоем, заполните
+              ее для каждого отдельно.
             </p>
             <div class="rsvp-decoration" aria-hidden="true">
               <span>12</span><i>декабря</i>
