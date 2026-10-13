@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#edf3f8" />
+    <meta name="theme-color" content="#0b203d" />
     <title>Михаил и Екатерина · 12 декабря 2026</title>
     <meta
       name="description"
@@ -15,26 +15,15 @@
       content="Один зимний день. Самые близкие люди. Наша свадьба."
     />
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-    <link
-      rel="preload"
-      href="assets/images/frost-silk-wide.webp"
-      as="image"
-      media="(min-width:761px)"
-    />
-    <link
-      rel="preload"
-      href="assets/images/frost-silk-mobile.webp"
-      as="image"
-      media="(max-width:760px)"
-    />
+    <link rel="preload" href="assets/images/palace-hero.webp" as="image" fetchpriority="high" />
+    <link rel="preload" href="assets/fonts/wedding-calligraphy.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="css/fonts.css" />
     <link rel="stylesheet" href="css/style.css" />
-    <link rel="stylesheet" href="css/motion.css" />
     <link rel="stylesheet" href="css/frost-silk.css" />
+    <link rel="stylesheet" href="css/palace.css" />
     <script src="js/config.js" defer></script>
     <script src="js/app.js" defer></script>
-    <script src="js/motion.js" defer></script>
-    <script src="js/frost-silk.js" defer></script>
+    <script src="js/palace.js" defer></script>
     <script src="js/winter-music.js" defer></script>
   </head>
   <body>
@@ -48,20 +37,47 @@
         >Анкета гостя <span aria-hidden="true">↗</span></a
       >
     </header>
+    <canvas id="snow" aria-hidden="true"></canvas>
     <main>
-      <section class="hero" id="home" aria-labelledby="hero-title">
-        <div class="hero-backdrop" aria-hidden="true"></div>
-        <canvas id="snow" aria-hidden="true"></canvas>
+      <section class="hero palace-scene" id="home" aria-labelledby="hero-title">
+        <div class="scene-image hero-backdrop" aria-hidden="true">
+          <img class="scene-photo" src="assets/images/palace-hero.webp" width="887" height="1774" alt="" fetchpriority="high" decoding="async" />
+        </div>
         <div class="hero-copy">
-          <p class="eyebrow hero-in">ПРИГЛАШЕНИЕ НА СВАДЬБУ</p>
-          <h1 id="hero-title" class="hero-in">
-            <span>Михаил</span><i>и</i><span>Екатерина</span>
+          <p class="hero-intro"><span class="hero-script">приглашение</span><span class="hero-subtitle">на свадьбу</span></p>
+          <div class="hero-hearts" aria-hidden="true"><span></span><svg viewBox="0 0 62 38" fill="none"><path d="M24 32C18 27 6 18 6 11C6 1 19 0 24 9C30 0 42 1 42 11C42 18 31 27 24 32Z"/><path d="M37 32C31 27 19 18 19 11C19 1 32 0 37 9C43 0 55 1 55 11C55 18 44 27 37 32Z"/></svg><span></span></div>
+          <h1 id="hero-title" aria-label="Михаил и Екатерина">
+            <span class="hero-name">Михаил</span>
+            <span class="hero-amp" aria-hidden="true"><span>&amp;</span></span>
+            <span class="hero-name">Екатерина</span>
           </h1>
-          <p class="hero-date hero-in"><time datetime="2026-12-12">12.12.2026</time></p>
-          <p class="hero-note hero-in">Наша зимняя сказка начинается с вас.</p>
-          <a class="text-link hero-in hero-button" href="#invitation"
-            >Дальше — самое важное <span aria-hidden="true">↓</span></a
-          >
+        </div>
+        <a class="hero-scroll" href="#date" aria-label="Перейти к дате свадьбы"><span aria-hidden="true">↓</span></a>
+      </section>
+
+      <section class="section date-section palace-scene" id="date" aria-labelledby="date-title">
+        <div class="scene-image" aria-hidden="true"><img class="scene-photo" src="assets/images/silver-date.webp" width="887" height="1774" alt="" loading="lazy" decoding="async" /></div>
+        <div class="container date-grid">
+          <div class="date-copy">
+            <p class="eyebrow reveal">ТОТ САМЫЙ ДЕНЬ</p>
+            <div class="diamond-divider reveal" aria-hidden="true"><span></span></div>
+            <h2 id="date-title" class="reveal">Сохраните<br />эту дату</h2>
+            <time class="date-display reveal" datetime="2026-12-12"><span class="date-number">12</span><span class="diamond-divider" aria-hidden="true"><span></span></span><span class="date-month">декабря 2026</span></time>
+            <p class="date-weekday reveal">суббота</p>
+            <div class="diamond-divider reveal" aria-hidden="true"><span></span></div>
+            <p class="date-message reveal">Один зимний день.<br />День рождения нашей семьи.</p>
+            <div class="date-actions"><a class="button button-outline reveal" href="assets/wedding.ics" download>Добавить в календарь</a><p class="countdown reveal" data-countdown></p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="atmosphere palace-scene" id="atmosphere" aria-labelledby="atmosphere-title">
+        <div class="scene-image" aria-hidden="true"><img class="scene-photo" src="assets/images/crystal-evening.webp" width="887" height="1774" alt="" loading="lazy" decoding="async" /></div>
+        <div class="container atmosphere-inner">
+          <p class="eyebrow reveal">НАСТРОЕНИЕ ВЕЧЕРА</p>
+          <div class="diamond-divider reveal" aria-hidden="true"><span></span></div>
+          <h2 id="atmosphere-title" class="reveal">Зима. Любовь.<br />Волшебство.</h2>
+          <p class="reveal">Снежные ветви, переливы хрусталя,<br class="wide-break" /> серебро и мягкое сияние свечей.</p>
         </div>
       </section>
 
@@ -91,66 +107,8 @@
                 loading="lazy"
               />
             </figure>
-            <span class="ice-glint photo-glint" aria-hidden="true"></span>
-          </div>
-        </div>
-      </section>
 
-      <section class="section date-section" id="date">
-        <div class="container date-grid">
-          <div class="date-copy">
-            <p class="eyebrow reveal">ТОТ САМЫЙ ДЕНЬ</p>
-            <h2 class="reveal">Сохраните<br /><em>эту дату</em></h2>
-            <p class="date-long reveal"><time datetime="2026-12-12">12 декабря 2026</time><span class="date-weekday">суббота</span></p>
-            <p class="muted reveal">
-              Один зимний день.<br />День рождения нашей семьи.
-            </p>
-            <a
-              class="button button-outline reveal"
-              href="assets/wedding.ics"
-              download
-              >Добавить в календарь</a
-            >
-            <p class="countdown reveal" data-countdown></p>
           </div>
-          <div
-            class="calendar reveal"
-            aria-label="Декабрь 2026, дата свадьбы — 12 декабря"
-          >
-            <div class="calendar-heading">
-              <span>Декабрь</span><span>2026</span>
-            </div>
-            <div class="calendar-week" aria-hidden="true">
-              <span>пн</span><span>вт</span><span>ср</span><span>чт</span
-              ><span>пт</span><span>сб</span><span>вс</span>
-            </div>
-            <div class="calendar-days" data-calendar></div>
-            <div class="calendar-note">
-              <span aria-hidden="true">♡</span> день, когда мы скажем «да»
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="atmosphere" aria-labelledby="atmosphere-title">
-        <img
-          src="assets/images/frost-silk-wide.webp"
-          class="atmosphere-image"
-          width="1672"
-          height="941"
-          alt=""
-          loading="lazy"
-        />
-        <div class="container atmosphere-inner">
-          <p class="eyebrow reveal">НАСТРОЕНИЕ ВЕЧЕРА</p>
-          <h2 id="atmosphere-title" class="reveal">
-            Зима. Любовь.<br /><em>Волшебство.</em>
-          </h2>
-          <p class="reveal">
-            Снежные ветви, переливы хрусталя, серебро и мягкое сияние свечей.
-            Пусть за окнами будет зима, а рядом — любимые люди,
-            искренние улыбки и тепло, которое останется в воспоминаниях.
-          </p>
         </div>
       </section>
 

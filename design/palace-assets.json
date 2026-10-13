@@ -1,0 +1,159 @@
+{
+  "createdWith": "Built-in image_gen, fidelity-preserving panel extraction and text cleanup from user originals",
+  "optimization": {
+    "format": "webp",
+    "quality": 85,
+    "method": 6,
+    "dimensions": [
+      887,
+      1774
+    ],
+    "resized": false,
+    "croppedAfterGeneration": false
+  },
+  "assets": [
+    {
+      "name": "palace-hero",
+      "file": "assets/images/palace-hero.webp",
+      "source": "Лёгкая дымка_ зимняя свадебная история (1).png — left panel",
+      "bytes": 345046,
+      "prompt": "Use case: precise-object-edit. Asset type: full-bleed wedding website background, tall portrait 1:2 aspect ratio. Input image is the edit target, a three-panel design board. Extract ONLY the LEFT panel (the palace and blue winter river), preserving the original scene precisely. Output ONLY this single tall panel, no board, no margins, no other panels. Do NOT redesign or reinterpret the scene. Preserve exact palace architecture, palace position approximately mid-height through 65%, snow-covered tall fir on left, snowy mountains, small illuminated gazebo lower left, dark blue reflective river winding through foreground, moon on upper right, deep navy stars and clouds. Carefully remove ALL typography, text, date numerals, tiny snowflake dividers, divider lines, bottom arrow and UI elements; reconstruct matching sky/river behind them. The sky in the upper 38% should stay clean and dark blue for later live text, using the existing sky and clouds without moving the moon. Only allowed additive edit: very subtle translucent gauzy silver sheer wedding veil at the extreme BOTTOM CORNERS, occupying just the lower 10-15% height, softly draped in snow, leaving the river still clearly visible and never covering palace or gazebo. The river composition is the priority. All other original details must stay in their original relative locations. No text, no logos, no borders, no watermark. Natural high-detail winter fantasy photographic image, identical colors and lighting to original. Tall 1:2 portrait output.",
+      "anchorsPercent": {
+        "moon": [
+          91,
+          16.7
+        ],
+        "palace": [
+          52,
+          51
+        ],
+        "gazebo": [
+          19,
+          63
+        ],
+        "river": [
+          53,
+          79
+        ],
+        "palaceBounds": [
+          22,
+          37,
+          83,
+          64
+        ],
+        "veilLowerCorners": [
+          0,
+          82,
+          100,
+          100
+        ]
+      }
+    },
+    {
+      "name": "silver-date",
+      "file": "assets/images/silver-date.webp",
+      "source": "Серебряная свадебная зимняя сказка(1).png — middle panel",
+      "bytes": 84406,
+      "prompt": "Use case: precise-object-edit. Asset type: full-bleed wedding website background, tall portrait 1:2 aspect ratio. Input image is the edit target, a three-panel design board. Extract ONLY the MIDDLE panel, the bright silver silk and wedding rings. Output ONLY this single tall panel, no board, no margins and no other panels. This is a fidelity-preserving crop and cleanup, not a scenic redesign. Preserve the original composition and exact materials: softly luminous silver-white veil backdrop with delicate bokeh, gauzy sheer veil edge at upper left, softly folded silver silk at lower third, the pair of platinum wedding bands near x50% y79% in the foreground, the white blossom beside the rings at lower right around x83% y79%, fine baby's breath stems along right lower third. Preserve rings size, overlapping arrangement and position, preserve original blossom details. Remove ALL typography, dates, numbers, tiny snowflake ornaments, divider lines, rounded calendar button and its border; reconstruct the original silk and silver bokeh seamlessly behind them. Large pale central space from 15% to 64% remains uncluttered for later live date text. No additional objects or flowers, no invented curtains, no new scene. Keep original pale cool silver-white colors, detail and lighting. Absolutely NO text, no symbols, no logos, no frame or watermark. Tall 1:2 portrait.",
+      "anchorsPercent": {
+        "rings": [
+          50,
+          79
+        ],
+        "blossom": [
+          82,
+          79
+        ],
+        "cleanTextBounds": [
+          18,
+          10,
+          82,
+          60
+        ]
+      }
+    },
+    {
+      "name": "crystal-evening",
+      "file": "assets/images/crystal-evening.webp",
+      "source": "Лёгкая дымка_ зимняя свадебная история (1).png — right panel",
+      "bytes": 214202,
+      "prompt": "Use case: precise-object-edit. Asset type: full-bleed wedding website background, tall portrait 1:2 aspect ratio. Input image is the edit target, a three-panel design board. Extract ONLY the RIGHT panel showing the crystal candelabra winter banquet in the snowy forest. Output ONLY this single tall panel, no board, no margins or other panels. Preserve the original scene and composition precisely, do NOT redesign it. Keep the LARGE ornate crystal candelabrum centered LEFT around x35%, its top beginning around y32%, lit candle flames around y44%, hanging crystal drops and long stem descending to lower quarter. Keep the smaller lit crystal candelabrum on right around x85% y53%, snowy blue forest trees behind, tall frosty trees at edges, original banquet table curving from lower right, white roses and delicate small white blossoms at lower left, transparent goblets, white porcelain, soft warm candle glow. Remove ALL typography, text, tiny snowflake ornament, divider lines; reconstruct the original cool dark blue forest and sky behind them. Keep dark softly blurred clean upper 30% of scene for future live text, no new objects there. Do not move foreground objects or change their scale. Cool midnight navy and icy silver forest balanced by warm amber flames, exactly like original. No draped curtains or silver fabric added, no missing large candelabrum, no replacement of scene with closeup roses. Absolutely NO text, no logos, no borders, no watermark. Tall 1:2 portrait.",
+      "anchorsPercent": {
+        "largeCandelabrum": [
+          36.5,
+          52
+        ],
+        "largeCandelabrumTop": [
+          37,
+          30.5
+        ],
+        "candleFlames": [
+          [
+            17.2,
+            44.8
+          ],
+          [
+            26.5,
+            40.9
+          ],
+          [
+            43.4,
+            40.9
+          ],
+          [
+            51,
+            44.2
+          ],
+          [
+            67.7,
+            50.1
+          ],
+          [
+            80.8,
+            50.5
+          ],
+          [
+            92.8,
+            50.9
+          ],
+          [
+            96.8,
+            52.1
+          ]
+        ],
+        "crystalGlints": [
+          [
+            37,
+            31.3
+          ],
+          [
+            33.8,
+            39.1
+          ],
+          [
+            27.6,
+            50.8
+          ],
+          [
+            38,
+            57.5
+          ],
+          [
+            46.4,
+            54.8
+          ]
+        ],
+        "roses": [
+          23,
+          76
+        ],
+        "cleanTextBounds": [
+          17,
+          2,
+          82,
+          29
+        ]
+      }
+    }
+  ]
+}

@@ -36,6 +36,7 @@
   const first = (new Date(Date.UTC(year, month - 1, 1)).getUTCDay() + 6) % 7;
   const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
   const calendar = $("[data-calendar]");
+  if (calendar) {
   for (let i = 0; i < first; i++)
     calendar.append(make("span", "calendar-blank", ""));
   for (let n = 1; n <= daysInMonth; n++) {
@@ -50,6 +51,7 @@
         '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 43C19 39 3 28 3 16 3 3 18 2 24 11 30 2 45 3 45 16 45 28 29 39 24 43Z"/></svg><b>12</b>';
     }
     calendar.append(el);
+  }
   }
   function updateCountdown() {
     const parts = new Intl.DateTimeFormat("en-CA", {
@@ -287,127 +289,4 @@
     $("#guest-name").focus();
   });
 
-  const reduced = matchMedia("(prefers-reduced-motion: reduce)");
-  if ("IntersectionObserver" in window && !reduced.matches) {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            e.target.classList.add("is-visible");
-            observer.unobserve(e.target);
-          }
-        });
-      },
-      { threshold: 0.08, rootMargin: "0px 0px -20px 0px" },
-    );
-    $$(".timeline article,.contacts-grid article,.wishes-grid article").forEach(
-      (e, i) => e.style.setProperty("--delay", `${(i % 4) * 70}ms`),
-    );
-    $$(".reveal").forEach((e) => observer.observe(e));
-    document.body.classList.add("motion-ready");
-  }
-  // Снег движется автоматически; вне экрана и в скрытой вкладке цикл отдыхает.
-  const canvas = $("#snow"),
-    ctx = canvas.getContext("2d");
-  let width = 0,
-    height = 0,
-    flakes = [],
-    raf = 0,
-    last = 0,
-    heroVisible = true;
-  function resize() {
-    const box = canvas.getBoundingClientRect();
-    width = box.width;
-    height = box.height;
-    const dpr = Math.min(devicePixelRatio || 1, 2);
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    flakes = Array.from({ length: width < 760 ? 42 : 76 }, () => ({
-      x: Math.random() * width,
-      y: Math.random() * height,
-      r: 1.1 + Math.random() * 2,
-      crystal: Math.random() < 0.18,
-      speed: 9 + Math.random() * 15,
-      phase: Math.random() * Math.PI * 2,
-      alpha: 0.5 + Math.random() * 0.4,
-    }));
-  }
-  function paintFlake(f, now) {
-    ctx.save();
-    ctx.translate(f.x, f.y);
-    ctx.globalAlpha = f.alpha * (0.68 + 0.32 * Math.sin(now / 1700 + f.phase) ** 2);
-    ctx.shadowColor = "rgba(82,119,150,.35)";
-    ctx.shadowBlur = f.crystal ? 3 : 2;
-    if (f.crystal) {
-      ctx.rotate(f.phase + now / 35000);
-      ctx.lineWidth = 0.9;
-      ctx.strokeStyle = "#fff";
-      const size = f.r * 2.3;
-      ctx.beginPath();
-      for (let arm = 0; arm < 6; arm++) {
-        const angle = arm * Math.PI / 3;
-        const x = Math.cos(angle), y = Math.sin(angle);
-        ctx.moveTo(0, 0);
-        ctx.lineTo(x * size, y * size);
-        for (const side of [-1, 1]) {
-          ctx.moveTo(x * size * 0.56, y * size * 0.56);
-          ctx.lineTo(
-            x * size * 0.78 - y * size * 0.22 * side,
-            y * size * 0.78 + x * size * 0.22 * side,
-          );
-        }
-      }
-      ctx.stroke();
-    } else {
-      ctx.beginPath();
-      ctx.arc(0, 0, f.r, 0, Math.PI * 2);
-      ctx.fillStyle = "#fff";
-      ctx.fill();
-    }
-    ctx.restore();
-  }
-  function tick(now) {
-    raf = 0;
-    if (reduced.matches || document.hidden || !heroVisible) return;
-    const delta = last ? Math.min((now - last) / 1000, 0.05) : 0;
-    last = now;
-    ctx.clearRect(0, 0, width, height);
-    flakes.forEach((f) => {
-      f.y += f.speed * delta;
-      f.x += Math.sin(now / 4000 + f.phase) * 5 * delta;
-      if (f.y > height + 10) {
-        f.y = -10;
-        f.x = Math.random() * width;
-      }
-      paintFlake(f, now);
-    });
-    raf = requestAnimationFrame(tick);
-  }
-  function syncMotion() {
-    if (raf) cancelAnimationFrame(raf);
-    raf = 0;
-    last = 0;
-    if (reduced.matches) ctx.clearRect(0, 0, width, height);
-    if (!reduced.matches && !document.hidden && heroVisible)
-      raf = requestAnimationFrame(tick);
-  }
-  resize();
-  if ("ResizeObserver" in window)
-    new ResizeObserver(() => {
-      resize();
-      syncMotion();
-    }).observe($("#home"));
-  else window.addEventListener("resize", resize);
-  if ("IntersectionObserver" in window)
-    new IntersectionObserver(([e]) => {
-      heroVisible = e.isIntersecting;
-      syncMotion();
-    }).observe($("#home"));
-  reduced.addEventListener("change", () => {
-    if (reduced.matches) document.body.classList.remove("motion-ready");
-    syncMotion();
-  });
-  document.addEventListener("visibilitychange", syncMotion);
-  syncMotion();
 })();
