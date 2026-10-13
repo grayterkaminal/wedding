@@ -4,11 +4,14 @@ PRODID:-//Mikhail and Ekaterina//Wedding//RU
 CALSCALE:GREGORIAN
 BEGIN:VEVENT
 UID:wedding-20261212-mikhail-ekaterina@invitation.local
-DTSTAMP:20260927T080000Z
-DTSTART;VALUE=DATE:20261212
-DTEND;VALUE=DATE:20261213
+DTSTAMP:20260927T173000Z
+DTSTART:20261212T120000Z
+DTEND:20261212T193000Z
 SUMMARY:Свадьба Михаила и Екатерины
 LOCATION:Немчиновка Парк\, 2-я Запрудная ул.\, 46
-DESCRIPTION:Зал «Немчиновка». Точное время появится в приглашении ближе к свадьбе.
+DESCRIPTION:Зал «Немчиновка». Время московско
+ е.\n15:00 — Встреча гостей\n16:00 — Церемония\n
+ 17:00 — Праздничный ужин\n22:30 — Теплый фина
+ л
 END:VEVENT
 END:VCALENDAR
