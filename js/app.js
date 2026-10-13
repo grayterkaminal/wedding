@@ -336,7 +336,7 @@
   function paintFlake(f, now) {
     ctx.save();
     ctx.translate(f.x, f.y);
-    ctx.globalAlpha = f.alpha;
+    ctx.globalAlpha = f.alpha * (0.68 + 0.32 * Math.sin(now / 1700 + f.phase) ** 2);
     ctx.shadowColor = "rgba(82,119,150,.35)";
     ctx.shadowBlur = f.crystal ? 3 : 2;
     if (f.crystal) {
