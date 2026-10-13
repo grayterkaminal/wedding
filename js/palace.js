@@ -5,9 +5,18 @@
   const body = document.body;
   const root = document.documentElement;
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
   const clamp = (value, min = 0, max = 1) => Math.max(min, Math.min(max, value));
+  const smoothstep = (value) => {
+    const t = clamp(value);
+    return t * t * (3 - 2 * t);
+  };
   const scenes = [...document.querySelectorAll("#home, #date, #atmosphere")];
   const visible = new Set();
+  const sceneBoxes = new Map();
+  const pointers = new Map(scenes.map((scene) => [scene, {
+    x: 0, y: 0, targetX: 0, targetY: 0, clientX: 0, clientY: 0, inside: false,
+  }]));
   const glowLayers = [];
   const canvas = document.getElementById("snow");
   let context = null;
@@ -20,6 +29,7 @@
   let width = 0;
   let height = 0;
   let mobile = false;
+  let sceneBlend = 120;
   let snowTarget = 0;
   let snowOpacity = 0;
   let snowBounds = [];
@@ -56,6 +66,7 @@
     revealAll();
     body.classList.add("hero-entered");
     body.classList.remove("palace-ready");
+    resetPointers();
     scenes.forEach((scene) => scene.classList.remove("scene-awake"));
   }
 
@@ -180,6 +191,9 @@
     width = nextWidth;
     height = nextHeight;
     mobile = width < 760;
+    sceneBlend = parseFloat(getComputedStyle(root).getPropertyValue("--scene-blend"))
+      || (width > 1000 ? 200 : width > 600 ? 160 : 120);
+    if (width <= 1000 || !finePointer.matches) resetPointers();
     if (context && canvas) {
       const dpr = Math.min(window.devicePixelRatio || 1, mobile ? 1.5 : 2);
       const backingWidth = Math.round(width * dpr);
@@ -200,6 +214,7 @@
             speed: [6, 13, 24][layer] + Math.random() * [5, 10, 12][layer],
             alpha: [0.2, 0.36, 0.2][layer] + Math.random() * 0.2,
             phase: Math.random() * Math.PI * 2,
+            carry: index % 4 === 0,
           };
         });
       }
@@ -212,8 +227,9 @@
     snowTarget = 0;
     snowBounds = [];
     const measurements = scenes.map((scene) => ({ scene, box: scene.getBoundingClientRect() }));
+    measurements.forEach(({ scene, box }) => sceneBoxes.set(scene, box));
     measurements.forEach(({ scene, box }) => {
-      const inView = box.bottom > 0 && box.top < height;
+      const inView = box.bottom > 0 && box.top < height && box.right > 0 && box.left < width;
       if (inView) visible.add(scene);
       else visible.delete(scene);
       const progress = clamp((height - box.top) / (height + box.height));
@@ -221,18 +237,125 @@
       scene.style.setProperty("--scene-progress", progress.toFixed(4));
       scene.style.setProperty("--scene-drift", `${drift.toFixed(2)}px`);
       scene.classList.toggle("scene-awake", inView && !reduced.matches && !document.hidden);
-      if (inView && (scene.id === "home" || scene.id === "atmosphere")) {
-        const left = Math.max(box.left, 0);
-        const right = Math.min(box.right, width);
-        const top = Math.max(box.top, 0);
-        const bottom = Math.min(box.bottom, height);
-        if (right <= left) return;
-        snowBounds.push({ left, top, width: right - left, height: bottom - top });
-        const coverage = clamp((bottom - top) / Math.min(height, box.height));
-        snowTarget = Math.max(snowTarget, coverage * (scene.id === "home" ? 0.9 : 0.5));
+      if (scene.id !== "home") {
+        // Follow the incoming overlap, not the text or the full section height.
+        const passage = clamp((height - box.top) / (height + sceneBlend));
+        const travel = smoothstep(passage) * 2 - 1;
+        scene.style.setProperty("--veil-drift", `${(reduced.matches ? 0 : travel * (mobile ? 12 : 18)).toFixed(2)}px`);
+        scene.style.setProperty("--veil-lift", `${(reduced.matches ? 0 : -travel * (mobile ? 4 : 6)).toFixed(2)}px`);
+        const light = reduced.matches ? 0.28 : 0.16 + Math.sin(passage * Math.PI) ** 2 * 0.5;
+        scene.style.setProperty("--veil-light", light.toFixed(3));
+      }
+      const pointer = pointers.get(scene);
+      if (!inView || (pointer.inside && (pointer.clientX < box.left || pointer.clientX > box.right
+        || pointer.clientY < box.top || pointer.clientY > box.bottom))) {
+        pointer.targetX = 0;
+        pointer.targetY = 0;
+        pointer.inside = false;
       }
     });
+    const dateBox = measurements.find(({ scene }) => scene.id === "date")?.box;
+    measurements.forEach(({ scene, box }) => {
+      if (scene.id !== "home" && scene.id !== "atmosphere") return;
+      const isHero = scene.id === "home";
+      const dateAdjoins = isHero && dateBox && dateBox.top <= box.bottom + 1
+        && dateBox.bottom > box.bottom;
+      const sourceBottom = dateAdjoins ? Math.min(box.bottom + 120, dateBox.bottom) : box.bottom;
+      const left = Math.max(box.left, 0);
+      const right = Math.min(box.right, width);
+      const top = Math.max(box.top, 0);
+      const bottom = Math.min(sourceBottom, height);
+      if (right <= left || bottom <= top) return;
+      const fadeLength = Math.min(160, Math.max(90, sceneBlend * 0.7));
+      snowBounds.push({
+        left, top, width: right - left, height: bottom - top,
+        sourceTop: box.top, sourceBottom, mainBottom: box.bottom,
+        fadeStart: dateAdjoins ? Math.max(box.top, dateBox.top) : box.bottom - fadeLength,
+        fadeIn: isHero ? 70 : Math.max(sceneBlend, fadeLength),
+        fadeOut: fadeLength,
+        hero: isHero, carry: Boolean(dateAdjoins),
+        intensity: isHero ? 0.9 : 0.5,
+      });
+    });
+    snowTarget = snowBounds.length ? 1 : 0;
     dirty = false;
+  }
+
+  function snowAt(flake, box) {
+    if (flake.x < box.left || flake.x > box.left + box.width
+      || flake.y < box.sourceTop || flake.y > box.sourceBottom) return 0;
+    let alpha = smoothstep((flake.y - box.sourceTop) / box.fadeIn);
+    if (box.hero && box.carry) {
+      if (flake.y > box.mainBottom) {
+        if (!flake.carry) return 0;
+        alpha *= 0.28 * (1 - smoothstep((flake.y - box.mainBottom)
+          / Math.max(1, box.sourceBottom - box.mainBottom)));
+      } else if (flake.y > box.fadeStart) {
+        const fade = smoothstep((flake.y - box.fadeStart)
+          / Math.max(1, box.mainBottom - box.fadeStart));
+        alpha *= 1 - fade * (flake.carry ? 0.72 : 1);
+      }
+    } else {
+      alpha *= smoothstep((box.sourceBottom - flake.y) / box.fadeOut);
+    }
+    return alpha * box.intensity;
+  }
+
+  function resetPointers() {
+    pointers.forEach((pointer, scene) => {
+      pointer.x = pointer.y = pointer.targetX = pointer.targetY = 0;
+      pointer.inside = false;
+      scene.style.setProperty("--pointer-x", "0px");
+      scene.style.setProperty("--pointer-y", "0px");
+    });
+  }
+
+  function updatePointers(delta) {
+    if (width <= 1000 || !finePointer.matches) return false;
+    let moving = false;
+    const ease = 1 - Math.exp(-delta * 8);
+    pointers.forEach((pointer, scene) => {
+      const dx = pointer.targetX - pointer.x;
+      const dy = pointer.targetY - pointer.y;
+      if (Math.abs(dx) < 0.015 && Math.abs(dy) < 0.015) {
+        if (pointer.x === pointer.targetX && pointer.y === pointer.targetY) return;
+        pointer.x = pointer.targetX;
+        pointer.y = pointer.targetY;
+      } else {
+        pointer.x += dx * ease;
+        pointer.y += dy * ease;
+        moving = true;
+      }
+      scene.style.setProperty("--pointer-x", `${pointer.x.toFixed(3)}px`);
+      scene.style.setProperty("--pointer-y", `${pointer.y.toFixed(3)}px`);
+    });
+    return moving;
+  }
+
+  function setupPointers() {
+    scenes.forEach((scene) => {
+      scene.addEventListener("pointermove", (event) => {
+        if (width <= 1000 || !finePointer.matches || reduced.matches || document.hidden) return;
+        if (event.pointerType === "touch") return;
+        const box = sceneBoxes.get(scene);
+        if (!box?.width || !box.height) return;
+        const pointer = pointers.get(scene);
+        pointer.clientX = event.clientX;
+        pointer.clientY = event.clientY;
+        pointer.inside = true;
+        pointer.targetX = clamp((event.clientX - box.left) / box.width * 2 - 1, -1, 1) * 7;
+        pointer.targetY = clamp((event.clientY - box.top) / box.height * 2 - 1, -1, 1) * 7;
+        requestFrame();
+      }, { passive: true });
+      const leave = () => {
+        const pointer = pointers.get(scene);
+        pointer.targetX = pointer.targetY = 0;
+        pointer.inside = false;
+        requestFrame();
+      };
+      scene.addEventListener("pointerleave", leave, { passive: true });
+      scene.addEventListener("pointercancel", leave, { passive: true });
+    });
   }
 
   function paintSnow(now, delta) {
@@ -243,7 +366,7 @@
     canvas.hidden = false;
     snowOpacity += (snowTarget - snowOpacity) * Math.min(1, delta * 3.5);
     context.clearRect(0, 0, width, height);
-    // The viewport canvas is clipped to the artwork, including partial scenes.
+    // Alpha feathers the edges; the outer clip keeps particles away from later content.
     context.save();
     context.beginPath();
     snowBounds.forEach((box) => context.rect(box.left, box.top, box.width, box.height));
@@ -258,7 +381,9 @@
       }
       if (flake.x > width + 8) flake.x = -8;
       else if (flake.x < -8) flake.x = width + 8;
-      context.globalAlpha = snowOpacity * flake.alpha;
+      const edgeAlpha = snowBounds.reduce((alpha, box) => Math.max(alpha, snowAt(flake, box)), 0);
+      if (edgeAlpha < 0.003) return;
+      context.globalAlpha = snowOpacity * flake.alpha * edgeAlpha;
       context.beginPath();
       context.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
       context.fill();
@@ -268,7 +393,12 @@
 
   function tick(now) {
     frame = 0;
-    if (document.hidden || reduced.matches) return;
+    if (document.hidden || reduced.matches) {
+      // A media query can update before its change event is delivered.
+      // Finish cleanup here too, rather than leaving the last painted state.
+      syncMotion();
+      return;
+    }
     // One clock owns both scenery and snow; mobile drawing is capped at 30fps.
     if (lastPaint && now - lastPaint < (mobile ? 1000 / 30 : 1000 / 60) - 1) {
       frame = requestAnimationFrame(tick);
@@ -279,8 +409,9 @@
       lastPaint = now;
       if (resizePending) resizeViewport();
       if (dirty) measureScenes();
+      const pointerMoving = updatePointers(delta);
       paintSnow(now, delta);
-      if (snowTarget > 0 || dirty || resizePending) frame = requestAnimationFrame(tick);
+      if (snowTarget > 0 || pointerMoving || dirty || resizePending) frame = requestAnimationFrame(tick);
       else lastPaint = 0;
     } catch {
       failOpen();
@@ -304,6 +435,7 @@
     if (failed) return;
     stopFrame();
     root.classList.toggle("motion-asleep", document.hidden);
+    if (document.hidden || reduced.matches || !finePointer.matches) resetPointers();
     if (reduced.matches) {
       revealObserver?.disconnect();
       revealAll();
@@ -312,7 +444,12 @@
     }
     scenes.forEach((scene) => {
       scene.classList.toggle("scene-awake", visible.has(scene) && !document.hidden && !reduced.matches);
-      if (reduced.matches) scene.style.setProperty("--scene-drift", "0px");
+      if (reduced.matches) {
+        scene.style.setProperty("--scene-drift", "0px");
+        scene.style.setProperty("--veil-drift", "0px");
+        scene.style.setProperty("--veil-lift", "0px");
+        scene.style.setProperty("--veil-light", "0.28");
+      }
     });
     if (document.hidden || reduced.matches) clearSnow();
     else {
@@ -355,6 +492,7 @@
     setupReveals();
     resizeViewport();
     measureScenes();
+    setupPointers();
     if ("IntersectionObserver" in window) {
       sceneObserver = new IntersectionObserver((entries) => {
         entries.forEach(({ target, isIntersecting }) => {
@@ -381,6 +519,8 @@
     });
     if (reduced.addEventListener) reduced.addEventListener("change", syncMotion);
     else reduced.addListener(syncMotion);
+    if (finePointer.addEventListener) finePointer.addEventListener("change", syncMotion);
+    else finePointer.addListener(syncMotion);
     // Hide entrance text in this same task; decoding must not trigger a late hide.
     body.classList.add("palace-ready");
     startHero();
