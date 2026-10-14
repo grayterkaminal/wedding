@@ -41,6 +41,8 @@
   let snowBounds = [];
   let quietZones = [];
   let flakes = [];
+  const snowCrystals = [];
+  let crystalGlint;
   let heroTimer = 0;
   let heroReady = false;
   let heroReplayArmed = false;
@@ -290,18 +292,23 @@
         context.setTransform(dpr, 0, 0, dpr, 0, 0);
       }
       if (changed || !flakes.length) {
-        flakes = Array.from({ length: mobile ? 50 : 90 }, (_, index) => {
-          const layer = index % 10 < 5 ? 0 : index % 10 < 9 ? 1 : 2;
+        const count = mobile ? 100 : 180;
+        flakes = Array.from({ length: count }, (_, index) => {
+          const layer = index % 10 < 4 ? 0 : index % 10 < 8 ? 1 : 2;
           return {
             layer,
             x: Math.random() * width,
             y: Math.random() * height,
-            radius: [0.45, 0.95, 2.1][layer] + Math.random() * [0.5, 0.75, 1.3][layer],
+            radius: [2.3, 4.2, 7][layer] + Math.random() * [1.6, 2.6, 3][layer],
             speed: [6, 13, 24][layer] + Math.random() * [5, 10, 12][layer],
-            alpha: [0.2, 0.36, 0.2][layer] + Math.random() * 0.2,
+            alpha: [0.3, 0.42, 0.48][layer] + Math.random() * 0.16,
             phase: Math.random() * Math.PI * 2,
+            angle: Math.random() * Math.PI * 2,
+            spin: (Math.random() - 0.5) * 0.18,
+            shimmerPeriod: 1100 + Math.random() * 650,
+            crystal: index % 3,
             carry: index % 4 === 0,
-            rank: (index + 0.5) / (mobile ? 50 : 90),
+            rank: (index + 0.5) / count,
           };
         });
       }
@@ -489,6 +496,35 @@
     });
   }
 
+  function makeSnowCrystals() {
+    // Cache six-armed branching paths once. No round particles or bitmap assets.
+    for (let variant = 0; variant < 3; variant++) {
+      const path = new Path2D();
+      const branchPoints = variant === 0 ? [0.57] : variant === 1 ? [0.42, 0.72] : [0.48, 0.77];
+      for (let arm = 0; arm < 6; arm++) {
+        const angle = arm * Math.PI / 3;
+        const x = Math.cos(angle);
+        const y = Math.sin(angle);
+        path.moveTo(0, 0);
+        path.lineTo(x, y);
+        branchPoints.forEach((distance) => {
+          const twig = distance > 0.6 ? 0.19 : 0.26;
+          for (const side of [-1, 1]) {
+            path.moveTo(x * distance, y * distance);
+            path.lineTo(x * (distance + twig * 0.7) - y * twig * side,
+              y * (distance + twig * 0.7) + x * twig * side);
+          }
+        });
+      }
+      snowCrystals.push(path);
+    }
+    crystalGlint = new Path2D();
+    crystalGlint.moveTo(-0.42, 0);
+    crystalGlint.lineTo(0.72, 0);
+    crystalGlint.moveTo(0.3, -0.22);
+    crystalGlint.lineTo(0.3, 0.22);
+  }
+
   function paintSnow(now, delta) {
     if (!context || !canvas || snowTarget <= 0) {
       clearSnow();
@@ -504,13 +540,14 @@
     context.clip();
     flakes.forEach((flake) => {
       flake.y += flake.speed * delta;
+      flake.angle += flake.spin * delta;
       flake.x += (Math.sin(now / 5200 + flake.phase) * (2 + flake.layer * 2) + 2) * delta;
-      if (flake.y > height + 8) {
-        flake.y = -8;
+      if (flake.y > height + 20) {
+        flake.y = -20;
         flake.x = Math.random() * width;
       }
-      if (flake.x > width + 8) flake.x = -8;
-      else if (flake.x < -8) flake.x = width + 8;
+      if (flake.x > width + 20) flake.x = -20;
+      else if (flake.x < -20) flake.x = width + 20;
       let edgeAlpha = 0;
       let color = "#ffffff";
       snowBounds.forEach((box) => {
@@ -524,11 +561,26 @@
         && flake.y >= box.top - 16 && flake.y <= box.bottom + 16);
       if (nearForm) edgeAlpha *= flake.rank < 0.16 ? 0.2 : 0;
       if (edgeAlpha < 0.003) return;
-      context.fillStyle = color;
-      context.globalAlpha = snowOpacity * flake.alpha * edgeAlpha;
-      context.beginPath();
-      context.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
-      context.fill();
+      // Broad, staggered glints every 7–11 seconds; no rapid flashing.
+      const shimmer = (0.5 + Math.sin(now / flake.shimmerPeriod + flake.phase) * 0.5) ** 8;
+      const alpha = snowOpacity * edgeAlpha;
+      context.save();
+      context.translate(flake.x, flake.y);
+      context.rotate(flake.angle);
+      context.scale(flake.radius, flake.radius);
+      context.lineCap = "round";
+      context.lineJoin = "round";
+      context.lineWidth = (0.7 + flake.layer * 0.12) / flake.radius;
+      context.strokeStyle = color;
+      context.globalAlpha = alpha * Math.min(0.92, flake.alpha + shimmer * 0.28);
+      context.stroke(snowCrystals[flake.crystal]);
+      if (shimmer > 0.25 && flake.layer > 0) {
+        context.globalAlpha = alpha * shimmer * 0.65;
+        context.lineWidth = 1.15 / flake.radius;
+        context.strokeStyle = color === "#ffffff" ? "#f8fcff" : "#577b9c";
+        context.stroke(crystalGlint);
+      }
+      context.restore();
     });
     context.restore();
   }
@@ -664,6 +716,7 @@
       canvas.style.cssText = "position:fixed;inset:0;width:100%;height:100%;pointer-events:none;";
       canvas.hidden = true;
       context = canvas.getContext("2d", { alpha: true });
+      if (context) makeSnowCrystals();
     }
     addGlows();
     resizeViewport();
