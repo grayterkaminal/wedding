@@ -12,6 +12,9 @@
     return t * t * (3 - 2 * t);
   };
   const scenes = [...document.querySelectorAll("#home, #date, #atmosphere")];
+  const snowSections = [...document.querySelectorAll("main > section, body > footer.footer")];
+  const formSurfaces = [...document.querySelectorAll(".form-wrap")];
+  const revealStates = new Map();
   const visible = new Set();
   const sceneBoxes = new Map();
   const pointers = new Map(scenes.map((scene) => [scene, {
@@ -22,10 +25,13 @@
   let context = null;
   let revealObserver;
   let sceneObserver;
+  let sectionResizeObserver;
   let frame = 0;
   let lastPaint = 0;
   let dirty = true;
   let resizePending = true;
+  let revealReconcilePending = false;
+  let layoutVersion = 0;
   let width = 0;
   let height = 0;
   let mobile = false;
@@ -33,8 +39,14 @@
   let snowTarget = 0;
   let snowOpacity = 0;
   let snowBounds = [];
+  let quietZones = [];
   let flakes = [];
   let heroTimer = 0;
+  let heroReady = false;
+  let heroReplayArmed = false;
+  let heroEntrancePending = false;
+  let motionWasReduced = reduced.matches;
+  let preferenceTimer = 0;
   let failed = false;
 
   function revealAll() {
@@ -60,9 +72,11 @@
     failed = true;
     stopFrame();
     clearTimeout(heroTimer);
+    clearTimeout(preferenceTimer);
     clearSnow();
     revealObserver?.disconnect();
     sceneObserver?.disconnect();
+    sectionResizeObserver?.disconnect();
     revealAll();
     body.classList.add("hero-entered");
     body.classList.remove("palace-ready");
@@ -70,18 +84,54 @@
     scenes.forEach((scene) => scene.classList.remove("scene-awake"));
   }
 
+  function protectedReveal(element) {
+    return element.matches("form, .form-wrap, [data-no-reveal]")
+      || Boolean(element.closest("form")) || Boolean(element.querySelector("form"))
+      || Boolean(element.contains(document.activeElement))
+      || element.matches("details[open], [aria-expanded='true']")
+      || Boolean(element.querySelector("details[open], [aria-expanded='true']"));
+  }
+
   function setupReveals() {
+    revealObserver?.disconnect();
     if (reduced.matches || !("IntersectionObserver" in window)) {
       revealAll();
       return;
     }
     revealObserver = new IntersectionObserver((entries) => {
-      entries.forEach(({ target, isIntersecting }) => {
-        if (!isIntersecting) return;
-        target.classList.add("is-visible");
-        revealObserver.unobserve(target);
+      entries.forEach(({ target, isIntersecting, boundingClientRect: box, intersectionRatio }) => {
+        const state = revealStates.get(target);
+        if (!state) return;
+        if (reduced.matches || protectedReveal(target)) {
+          target.classList.add("is-visible");
+          state.armed = false;
+          return;
+        }
+        const viewportHeight = window.innerHeight;
+        const viewportKey = `${window.innerWidth}:${viewportHeight}`;
+        const exitSide = box.bottom <= 0 ? -1 : box.top >= viewportHeight ? 1 : 0;
+        if (!isIntersecting && exitSide && box.width > 0 && box.height > 0) {
+          // Move hidden text away from its exit edge, never back into the viewport.
+          target.style.setProperty("--reveal-shift", `${exitSide * (mobile ? 14 : 18)}px`);
+          target.classList.remove("is-visible");
+          state.armed = true;
+          state.side = exitSide;
+          state.scrollY = window.scrollY;
+          state.viewport = viewportKey;
+          state.layoutVersion = layoutVersion;
+        } else if (isIntersecting && intersectionRatio > 0) {
+          // Ignore observer changes caused only by the reveal transform itself.
+          const returning = !state.seen || !state.side || state.viewport !== viewportKey
+            || state.layoutVersion !== layoutVersion
+            || (state.side < 0 ? window.scrollY < state.scrollY : window.scrollY > state.scrollY);
+          if (!state.armed || returning) {
+            target.classList.add("is-visible");
+            state.armed = false;
+            state.seen = true;
+          }
+        }
       });
-    }, { threshold: 0.04, rootMargin: "0px 0px -24px 0px" });
+    }, { threshold: [0, 0.015], rootMargin: "0px" });
 
     document.querySelectorAll(
       ".intro-copy, .date-copy, .atmosphere-inner, .timeline, .contacts-grid, .wishes-grid",
@@ -91,13 +141,33 @@
       });
     });
     document.querySelectorAll(".reveal").forEach((element) => {
-      // Never hide a form or an element already revealed earlier in the visit.
-      if (element.matches("form") || element.querySelector("form")) {
+      const shown = element.classList.contains("is-visible");
+      revealStates.set(element, {
+        armed: !shown, seen: shown, side: 0, scrollY: window.scrollY, viewport: "", layoutVersion,
+      });
+      element.style.setProperty("--reveal-shift", `${mobile ? 14 : 18}px`);
+      // Forms and their containing surface are always readable and usable.
+      if (element.matches("form, .form-wrap") || element.closest("form") || element.querySelector("form")) {
         element.classList.add("is-visible");
+        return;
       }
-      if (!element.classList.contains("is-visible")) revealObserver.observe(element);
+      revealObserver.observe(element);
     });
     body.classList.add("motion-ready");
+  }
+
+  function reconcileReveals() {
+    revealReconcilePending = false;
+    if (reduced.matches) return;
+    const entries = [...revealStates].filter(([, state]) => state.armed)
+      .map(([element, state]) => ({ element, state, box: element.getBoundingClientRect() }));
+    entries.forEach(({ element, state, box }) => {
+      if (box.width > 0 && box.height > 0 && box.bottom > 0 && box.top < height) {
+        element.classList.add("is-visible");
+        state.armed = false;
+        state.seen = true;
+      }
+    });
   }
 
   // Coordinates refer to the uncropped source artwork, not the viewport.
@@ -215,6 +285,7 @@
             alpha: [0.2, 0.36, 0.2][layer] + Math.random() * 0.2,
             phase: Math.random() * Math.PI * 2,
             carry: index % 4 === 0,
+            rank: (index + 0.5) / (mobile ? 50 : 90),
           };
         });
       }
@@ -226,7 +297,10 @@
   function measureScenes() {
     snowTarget = 0;
     snowBounds = [];
-    const measurements = scenes.map((scene) => ({ scene, box: scene.getBoundingClientRect() }));
+    const sectionMeasurements = snowSections.map((scene) => ({ scene, box: scene.getBoundingClientRect() }));
+    const measurements = sectionMeasurements.filter(({ scene }) => sceneBoxes.has(scene) || scenes.includes(scene));
+    quietZones = formSurfaces.map((element) => element.getBoundingClientRect())
+      .filter((box) => box.bottom > 0 && box.top < height && box.width > 0 && box.height > 0);
     measurements.forEach(({ scene, box }) => sceneBoxes.set(scene, box));
     measurements.forEach(({ scene, box }) => {
       const inView = box.bottom > 0 && box.top < height && box.right > 0 && box.left < width;
@@ -252,12 +326,19 @@
         pointer.targetX = 0;
         pointer.targetY = 0;
         pointer.inside = false;
+      } else if (pointer.inside && box.width && box.height) {
+        pointer.targetX = clamp((pointer.clientX - box.left) / box.width * 2 - 1, -1, 1) * 7;
+        pointer.targetY = clamp((pointer.clientY - box.top) / box.height * 2 - 1, -1, 1) * 7;
       }
+      if (scene.id === "home") syncHeroReplay(scene, box);
     });
     const dateBox = measurements.find(({ scene }) => scene.id === "date")?.box;
-    measurements.forEach(({ scene, box }) => {
-      if (scene.id !== "home" && scene.id !== "atmosphere") return;
+    sectionMeasurements.forEach(({ scene, box }) => {
       const isHero = scene.id === "home";
+      const isEvening = scene.id === "atmosphere";
+      const isDate = scene.id === "date";
+      const isQuiet = scene.id === "rsvp";
+      const dark = isHero || isEvening || scene.dataset.snow === "dark";
       const dateAdjoins = isHero && dateBox && dateBox.top <= box.bottom + 1
         && dateBox.bottom > box.bottom;
       const sourceBottom = dateAdjoins ? Math.min(box.bottom + 120, dateBox.bottom) : box.bottom;
@@ -271,10 +352,12 @@
         left, top, width: right - left, height: bottom - top,
         sourceTop: box.top, sourceBottom, mainBottom: box.bottom,
         fadeStart: dateAdjoins ? Math.max(box.top, dateBox.top) : box.bottom - fadeLength,
-        fadeIn: isHero ? 70 : Math.max(sceneBlend, fadeLength),
-        fadeOut: fadeLength,
+        fadeIn: isHero ? 70 : (isEvening || isDate) ? Math.max(sceneBlend, fadeLength) : 54,
+        fadeOut: isDate ? sceneBlend : (isHero || isEvening) ? fadeLength : 54,
         hero: isHero, carry: Boolean(dateAdjoins),
-        intensity: isHero ? 0.9 : 0.5,
+        intensity: isHero ? 0.9 : isEvening ? 0.56 : isQuiet ? 0.45 : 0.76,
+        density: isHero ? 1 : isEvening ? 0.9 : isQuiet ? 0.32 : 0.72,
+        color: dark ? "#ffffff" : "#6e8caa",
       });
     });
     snowTarget = snowBounds.length ? 1 : 0;
@@ -283,7 +366,7 @@
 
   function snowAt(flake, box) {
     if (flake.x < box.left || flake.x > box.left + box.width
-      || flake.y < box.sourceTop || flake.y > box.sourceBottom) return 0;
+      || flake.y < box.sourceTop || flake.y > box.sourceBottom || flake.rank > box.density) return 0;
     let alpha = smoothstep((flake.y - box.sourceTop) / box.fadeIn);
     if (box.hero && box.carry) {
       if (flake.y > box.mainBottom) {
@@ -299,6 +382,38 @@
       alpha *= smoothstep((box.sourceBottom - flake.y) / box.fadeOut);
     }
     return alpha * box.intensity;
+  }
+
+  function syncHeroReplay(hero, box) {
+    if (!heroReady || reduced.matches || document.hidden) return;
+    if (box.bottom <= 0 && !hero.contains(document.activeElement)) {
+      clearTimeout(heroTimer);
+      heroReplayArmed = true;
+      heroEntrancePending = false;
+      body.classList.remove("hero-entered");
+    } else if (heroReplayArmed && box.bottom > 0 && box.top < height) {
+      heroReplayArmed = false;
+      heroEntrancePending = false;
+      body.classList.add("hero-entered");
+    }
+  }
+
+  function finishHeroEntrance() {
+    if (failed) return;
+    if (document.hidden) {
+      heroEntrancePending = true;
+      return;
+    }
+    heroEntrancePending = false;
+    const hero = scenes.find((scene) => scene.id === "home");
+    const box = hero && sceneBoxes.get(hero);
+    if (!reduced.matches && box?.bottom <= 0 && !hero.contains(document.activeElement)) {
+      heroReplayArmed = true;
+      body.classList.remove("hero-entered");
+    } else {
+      heroReplayArmed = false;
+      body.classList.add("hero-entered");
+    }
   }
 
   function resetPointers() {
@@ -366,12 +481,11 @@
     canvas.hidden = false;
     snowOpacity += (snowTarget - snowOpacity) * Math.min(1, delta * 3.5);
     context.clearRect(0, 0, width, height);
-    // Alpha feathers the edges; the outer clip keeps particles away from later content.
+    // One field crosses every section; per-section color and density stay behind type.
     context.save();
     context.beginPath();
     snowBounds.forEach((box) => context.rect(box.left, box.top, box.width, box.height));
     context.clip();
-    context.fillStyle = "#fff";
     flakes.forEach((flake) => {
       flake.y += flake.speed * delta;
       flake.x += (Math.sin(now / 5200 + flake.phase) * (2 + flake.layer * 2) + 2) * delta;
@@ -381,8 +495,20 @@
       }
       if (flake.x > width + 8) flake.x = -8;
       else if (flake.x < -8) flake.x = width + 8;
-      const edgeAlpha = snowBounds.reduce((alpha, box) => Math.max(alpha, snowAt(flake, box)), 0);
+      let edgeAlpha = 0;
+      let color = "#ffffff";
+      snowBounds.forEach((box) => {
+        const alpha = snowAt(flake, box);
+        if (alpha > edgeAlpha) {
+          edgeAlpha = alpha;
+          color = box.color;
+        }
+      });
+      const nearForm = quietZones.some((box) => flake.x >= box.left - 16 && flake.x <= box.right + 16
+        && flake.y >= box.top - 16 && flake.y <= box.bottom + 16);
+      if (nearForm) edgeAlpha *= flake.rank < 0.16 ? 0.2 : 0;
       if (edgeAlpha < 0.003) return;
+      context.fillStyle = color;
       context.globalAlpha = snowOpacity * flake.alpha * edgeAlpha;
       context.beginPath();
       context.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
@@ -399,6 +525,10 @@
       syncMotion();
       return;
     }
+    if (motionWasReduced) {
+      syncMotion();
+      return;
+    }
     // One clock owns both scenery and snow; mobile drawing is capped at 30fps.
     if (lastPaint && now - lastPaint < (mobile ? 1000 / 30 : 1000 / 60) - 1) {
       frame = requestAnimationFrame(tick);
@@ -409,6 +539,7 @@
       lastPaint = now;
       if (resizePending) resizeViewport();
       if (dirty) measureScenes();
+      if (revealReconcilePending) reconcileReveals();
       const pointerMoving = updatePointers(delta);
       paintSnow(now, delta);
       if (snowTarget > 0 || pointerMoving || dirty || resizePending) frame = requestAnimationFrame(tick);
@@ -424,6 +555,8 @@
 
   function requestResize() {
     resizePending = true;
+    revealReconcilePending = true;
+    layoutVersion += 1;
     dirty = true;
     if (reduced.matches) {
       resizeViewport();
@@ -433,14 +566,22 @@
 
   function syncMotion() {
     if (failed) return;
+    const restoring = motionWasReduced && !reduced.matches;
+    motionWasReduced = reduced.matches;
     stopFrame();
+    clearTimeout(preferenceTimer);
+    if (document.hidden) clearTimeout(heroTimer);
     root.classList.toggle("motion-asleep", document.hidden);
     if (document.hidden || reduced.matches || !finePointer.matches) resetPointers();
     if (reduced.matches) {
       revealObserver?.disconnect();
       revealAll();
       clearTimeout(heroTimer);
+      heroReplayArmed = false;
+      heroEntrancePending = false;
       body.classList.add("palace-ready", "hero-entered");
+    } else if (restoring) {
+      setupReveals();
     }
     scenes.forEach((scene) => {
       scene.classList.toggle("scene-awake", visible.has(scene) && !document.hidden && !reduced.matches);
@@ -451,12 +592,30 @@
         scene.style.setProperty("--veil-light", "0.28");
       }
     });
-    if (document.hidden || reduced.matches) clearSnow();
+    if (document.hidden || reduced.matches) {
+      clearSnow();
+      watchPreferenceResume();
+    }
     else {
+      if (heroEntrancePending && heroReady) {
+        clearTimeout(heroTimer);
+        heroTimer = setTimeout(finishHeroEntrance, 160);
+      }
       dirty = true;
       resizePending = true;
       requestFrame();
     }
+  }
+
+  function watchPreferenceResume() {
+    // No animation frames run while reduced. This low-frequency fallback also
+    // handles browsers which update a MediaQueryList without dispatching change.
+    if (failed || document.hidden || !reduced.matches) return;
+    preferenceTimer = setTimeout(() => {
+      preferenceTimer = 0;
+      if (reduced.matches) watchPreferenceResume();
+      else syncMotion();
+    }, 400);
   }
 
   function startHero() {
@@ -470,11 +629,13 @@
     ]).then(() => {
       clearTimeout(timeout);
       if (failed) return;
+      heroReady = true;
       requestResize();
       if (reduced.matches || body.classList.contains("hero-entered")) {
         body.classList.add("hero-entered");
       } else {
-        heroTimer = setTimeout(() => body.classList.add("hero-entered"), 800);
+        heroEntrancePending = true;
+        if (!document.hidden) heroTimer = setTimeout(finishHeroEntrance, 800);
       }
     }).catch(failOpen);
   }
@@ -489,8 +650,8 @@
       context = canvas.getContext("2d", { alpha: true });
     }
     addGlows();
-    setupReveals();
     resizeViewport();
+    setupReveals();
     measureScenes();
     setupPointers();
     if ("IntersectionObserver" in window) {
@@ -504,17 +665,29 @@
       });
       scenes.forEach((scene) => sceneObserver.observe(scene));
     }
+    if ("ResizeObserver" in window) {
+      sectionResizeObserver = new ResizeObserver(requestResize);
+      document.querySelectorAll("main, body > footer.footer").forEach((element) => {
+        sectionResizeObserver.observe(element);
+      });
+    }
     window.addEventListener("scroll", () => {
       dirty = true;
       requestFrame();
     }, { passive: true });
     window.addEventListener("resize", requestResize, { passive: true });
+    window.addEventListener("focus", syncMotion);
     document.addEventListener("visibilitychange", syncMotion);
     document.addEventListener("focusin", ({ target }) => {
-      const element = target.closest?.(".reveal");
-      if (element) {
+      let element = target.closest?.(".reveal");
+      while (element) {
         element.classList.add("is-visible");
-        revealObserver?.unobserve(element);
+        const state = revealStates.get(element);
+        if (state) {
+          state.armed = false;
+          state.seen = true;
+        }
+        element = element.parentElement?.closest(".reveal");
       }
     });
     if (reduced.addEventListener) reduced.addEventListener("change", syncMotion);
