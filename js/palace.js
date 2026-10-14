@@ -41,8 +41,7 @@
   let snowBounds = [];
   let quietZones = [];
   let flakes = [];
-  const snowCrystals = [];
-  let crystalGlint;
+  const glitterSprites = {};
   let heroTimer = 0;
   let heroReady = false;
   let heroReplayArmed = false;
@@ -299,14 +298,15 @@
             layer,
             x: Math.random() * width,
             y: Math.random() * height,
-            radius: [2.3, 4.2, 7][layer] + Math.random() * [1.6, 2.6, 3][layer],
-            speed: [6, 13, 24][layer] + Math.random() * [5, 10, 12][layer],
-            alpha: [0.3, 0.42, 0.48][layer] + Math.random() * 0.16,
+            radius: [0.55, 1.05, 1.65][layer] + Math.random() * [0.4, 0.55, 0.7][layer],
+            speed: [5, 10, 16][layer] + Math.random() * [4, 7, 8][layer],
+            alpha: [0.28, 0.38, 0.48][layer] + Math.random() * 0.12,
             phase: Math.random() * Math.PI * 2,
             angle: Math.random() * Math.PI * 2,
             spin: (Math.random() - 0.5) * 0.18,
             shimmerPeriod: 1100 + Math.random() * 650,
-            crystal: index % 3,
+            tintPhase: Math.random() * Math.PI * 2,
+            tintPeriod: 1400 + Math.random() * 1000,
             carry: index % 4 === 0,
             rank: (index + 0.5) / count,
           };
@@ -496,33 +496,50 @@
     });
   }
 
-  function makeSnowCrystals() {
-    // Cache six-armed branching paths once. No round particles or bitmap assets.
-    for (let variant = 0; variant < 3; variant++) {
-      const path = new Path2D();
-      const branchPoints = variant === 0 ? [0.57] : variant === 1 ? [0.42, 0.72] : [0.48, 0.77];
-      for (let arm = 0; arm < 6; arm++) {
-        const angle = arm * Math.PI / 3;
-        const x = Math.cos(angle);
-        const y = Math.sin(angle);
-        path.moveTo(0, 0);
-        path.lineTo(x, y);
-        branchPoints.forEach((distance) => {
-          const twig = distance > 0.6 ? 0.19 : 0.26;
-          for (const side of [-1, 1]) {
-            path.moveTo(x * distance, y * distance);
-            path.lineTo(x * (distance + twig * 0.7) - y * twig * side,
-              y * (distance + twig * 0.7) + x * twig * side);
-          }
-        });
-      }
-      snowCrystals.push(path);
-    }
-    crystalGlint = new Path2D();
-    crystalGlint.moveTo(-0.42, 0);
-    crystalGlint.lineTo(0.72, 0);
-    crystalGlint.moveTo(0.3, -0.22);
-    crystalGlint.lineTo(0.3, 0.22);
+  function makeSnowGlitter() {
+    // Small cached light textures: a bright pin-point, a fading halo, and faint
+    // tapered rays. The crystalline shape only emerges during a passing glint.
+    // Gradients are made once, never rebuilt in the animation loop.
+    const colors = { night: [163, 197, 238], day: [106, 143, 181], white: [255, 255, 255] };
+    Object.entries(colors).forEach(([name, channels]) => {
+      const rgba = (alpha) => `rgba(${channels.join(",")},${alpha})`;
+      glitterSprites[name] = {};
+      ["glow", "rays"].forEach((kind) => {
+        const sprite = document.createElement("canvas");
+        sprite.width = sprite.height = 64;
+        const paint = sprite.getContext("2d");
+        if (kind === "glow") {
+          const light = paint.createRadialGradient(32, 32, 0, 32, 32, 32);
+          light.addColorStop(0, rgba(1));
+          light.addColorStop(0.09, rgba(0.98));
+          light.addColorStop(0.18, rgba(0.32));
+          light.addColorStop(0.4, rgba(0.04));
+          light.addColorStop(0.78, rgba(0));
+          paint.fillStyle = light;
+          paint.fillRect(0, 0, 64, 64);
+        } else {
+          [1, 0.63, 0.74, 0.9, 0.56, 0.68].forEach((reach, arm) => {
+            const length = reach * 28;
+            paint.save();
+            paint.translate(32, 32);
+            paint.rotate(arm * Math.PI / 3);
+            const light = paint.createLinearGradient(0, 0, length, 0);
+            light.addColorStop(0, rgba(0.85));
+            light.addColorStop(0.24, rgba(0.45));
+            light.addColorStop(1, rgba(0));
+            paint.fillStyle = light;
+            paint.beginPath();
+            paint.moveTo(0, -2.2);
+            paint.lineTo(length, 0);
+            paint.lineTo(0, 2.2);
+            paint.closePath();
+            paint.fill();
+            paint.restore();
+          });
+        }
+        glitterSprites[name][kind] = sprite;
+      });
+    });
   }
 
   function paintSnow(now, delta) {
@@ -561,24 +578,29 @@
         && flake.y >= box.top - 16 && flake.y <= box.bottom + 16);
       if (nearForm) edgeAlpha *= flake.rank < 0.16 ? 0.2 : 0;
       if (edgeAlpha < 0.003) return;
-      // Broad, staggered glints every 7–11 seconds; no rapid flashing.
-      const shimmer = (0.5 + Math.sin(now / flake.shimmerPeriod + flake.phase) * 0.5) ** 8;
-      const alpha = snowOpacity * edgeAlpha;
+      // Each crystal breathes and changes tint independently. Most stay faint;
+      // a few catch white light, then dissolve back into a cool silver hue.
+      const shimmer = (0.5 + Math.sin(now / flake.shimmerPeriod + flake.phase) * 0.5) ** 4;
+      const tint = 0.5 + Math.sin(now / flake.tintPeriod + flake.tintPhase) * 0.5;
+      const white = tint * 0.65 + shimmer * 0.35;
+      const brightness = flake.alpha * (0.24 + shimmer * 0.64) + 0.3 * shimmer ** 3;
+      const alpha = snowOpacity * edgeAlpha * Math.min(0.88, brightness);
+      const cold = glitterSprites[color === "#ffffff" ? "night" : "day"];
+      const halo = flake.radius * 2.5;
       context.save();
       context.translate(flake.x, flake.y);
       context.rotate(flake.angle);
-      context.scale(flake.radius, flake.radius);
-      context.lineCap = "round";
-      context.lineJoin = "round";
-      context.lineWidth = (0.7 + flake.layer * 0.12) / flake.radius;
-      context.strokeStyle = color;
-      context.globalAlpha = alpha * Math.min(0.92, flake.alpha + shimmer * 0.28);
-      context.stroke(snowCrystals[flake.crystal]);
-      if (shimmer > 0.25 && flake.layer > 0) {
-        context.globalAlpha = alpha * shimmer * 0.65;
-        context.lineWidth = 1.15 / flake.radius;
-        context.strokeStyle = color === "#ffffff" ? "#f8fcff" : "#577b9c";
-        context.stroke(crystalGlint);
+      context.globalAlpha = alpha * (1 - white * 0.65);
+      context.drawImage(cold.glow, -halo, -halo, halo * 2, halo * 2);
+      context.globalAlpha = alpha * white;
+      context.drawImage(glitterSprites.white.glow, -halo, -halo, halo * 2, halo * 2);
+      if (shimmer > 0.35 && flake.layer > 0) {
+        const ray = flake.radius * (1.35 + shimmer * 0.45);
+        const glint = smoothstep((shimmer - 0.35) / 0.65);
+        context.globalAlpha = alpha * glint * (1 - white) * 0.7;
+        context.drawImage(cold.rays, -ray, -ray, ray * 2, ray * 2);
+        context.globalAlpha = alpha * glint * (0.4 + white * 0.6);
+        context.drawImage(glitterSprites.white.rays, -ray, -ray, ray * 2, ray * 2);
       }
       context.restore();
     });
@@ -716,7 +738,7 @@
       canvas.style.cssText = "position:fixed;inset:0;width:100%;height:100%;pointer-events:none;";
       canvas.hidden = true;
       context = canvas.getContext("2d", { alpha: true });
-      if (context) makeSnowCrystals();
+      if (context) makeSnowGlitter();
     }
     addGlows();
     resizeViewport();
