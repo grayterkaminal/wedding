@@ -243,7 +243,6 @@
 }
 .timeline article::before { display: none; }
 .timeline-time { grid-row: 1 / 3; margin: 0; }
-.timeline-until { display: block; margin-top: 6px; font: 500 12px/1.3 var(--sans); letter-spacing: .08em; color: var(--muted); }
 .timeline h3 { font-size: 34px; margin: 0; }
 .timeline p { grid-column: 2; }
 .dress-tabs { gap: 14px; }
