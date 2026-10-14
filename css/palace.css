@@ -36,7 +36,7 @@ body { overflow-x:clip; }
 .hero h1 .hero-amp > span { padding:0 .05em; }
 .hero-scroll { position:absolute; z-index:4; left:calc(50% - 24px); bottom:max(26px,env(safe-area-inset-bottom)); width:48px; height:48px; display:grid; place-items:center; font:300 35px/1 var(--serif); color:#fff; text-shadow:0 1px 10px #102a49; }
 .hero-scroll span { animation:arrow-drift 3.6s ease-in-out infinite; }
-#snow { position:fixed; inset:0; width:100%; height:100svh; z-index:2; pointer-events:none; }
+#snow { position:fixed; inset:0; width:100%; height:100%; z-index:4; pointer-events:none; }
 /* Plain HTML remains readable before JavaScript or if motion is unavailable. */
 .palace-ready:not(.hero-entered) .hero-intro,.palace-ready:not(.hero-entered) .hero-hearts,.palace-ready:not(.hero-entered) .hero-name,.palace-ready:not(.hero-entered) .hero-amp,.palace-ready:not(.hero-entered) .hero-scroll { opacity:0; }
 .hero-entered .hero-intro { animation:ink-reveal 1.5s .05s both; }
@@ -251,9 +251,9 @@ body { overflow-x:clip; }
   .photo-reveal .photo-window > img,.photo-reveal .contact-content > * { opacity:1 !important; transform:none !important; transition:none !important; }
   .diamond-divider::before,.diamond-divider::after { transform:none !important; }
 }
-/* Keep global snow between the scenery and readable live type. */
+/* Scenery and content share the page beneath the continuous snow field. */
 .palace-scene { isolation:auto; }
-/* Keep one snow layer over the backgrounds and below live content throughout. */
+/* The foreground snow stays visible across photos and cards as well as scenery. */
 main > section:not(.palace-scene),.footer { isolation:auto; }
 main > section:not(.palace-scene) > .container,.footer > :not(.winter-dust) { position:relative; z-index:3; }
 main > section:not(.palace-scene)::before,main > section:not(.palace-scene)::after { z-index:0; }
@@ -287,8 +287,8 @@ main > section:not(.palace-scene)::before,main > section:not(.palace-scene)::aft
   .date-actions { padding-top:35px; }
 }
 
-/* One continuous winter landscape. Only the scenery is masked: live type stays
-   above the global snow, and ordinary document scrolling remains untouched. */
+/* One continuous winter landscape. Only scenery is masked; live type and
+   ordinary document scrolling remain untouched. */
 :root { --scene-blend:120px; }
 html { scroll-padding-top:24px; }
 .palace-scene { --pointer-x:0px; --pointer-y:0px; --veil-drift:0px; --veil-lift:0px; --veil-light:.25; }

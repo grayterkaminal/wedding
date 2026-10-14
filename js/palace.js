@@ -13,7 +13,9 @@
   };
   const scenes = [...document.querySelectorAll("#home, #date, #atmosphere")];
   const snowSections = [...document.querySelectorAll("main > section, body > footer.footer")];
-  const formSurfaces = [...document.querySelectorAll(".form-wrap")];
+  const formSurfaces = [...document.querySelectorAll(
+    ".form-wrap input[type='text'], .form-wrap textarea, .form-wrap .submit-button",
+  )];
   const revealStates = new Map();
   const visible = new Set();
   const sceneBoxes = new Map();
@@ -291,24 +293,22 @@
         context.setTransform(dpr, 0, 0, dpr, 0, 0);
       }
       if (changed || !flakes.length) {
-        const count = mobile ? 100 : 180;
+        const count = mobile ? 120 : 220;
         flakes = Array.from({ length: count }, (_, index) => {
           const layer = index % 10 < 4 ? 0 : index % 10 < 8 ? 1 : 2;
           return {
             layer,
             x: Math.random() * width,
             y: Math.random() * height,
-            radius: [0.55, 1.05, 1.65][layer] + Math.random() * [0.4, 0.55, 0.7][layer],
+            radius: [0.7, 1.1, 1.7][layer] + Math.random() * [0.35, 0.5, 0.6][layer],
             speed: [5, 10, 16][layer] + Math.random() * [4, 7, 8][layer],
-            alpha: [0.28, 0.38, 0.48][layer] + Math.random() * 0.12,
+            alpha: [0.5, 0.63, 0.78][layer] + Math.random() * 0.12,
             phase: Math.random() * Math.PI * 2,
             angle: Math.random() * Math.PI * 2,
             spin: (Math.random() - 0.5) * 0.18,
             shimmerPeriod: 1100 + Math.random() * 650,
             tintPhase: Math.random() * Math.PI * 2,
             tintPeriod: 1400 + Math.random() * 1000,
-            carry: index % 4 === 0,
-            rank: (index + 0.5) / count,
           };
         });
       }
@@ -355,56 +355,37 @@
       }
       if (scene.id === "home") syncHeroReplay(scene, box);
     });
-    const dateBox = measurements.find(({ scene }) => scene.id === "date")?.box;
     sectionMeasurements.forEach(({ scene, box }) => {
       const isHero = scene.id === "home";
       const isEvening = scene.id === "atmosphere";
-      const isDate = scene.id === "date";
-      const isQuiet = scene.id === "rsvp";
       const dark = isHero || isEvening || scene.dataset.snow === "dark";
-      const dateAdjoins = isHero && dateBox && dateBox.top <= box.bottom + 1
-        && dateBox.bottom > box.bottom;
-      const sourceBottom = dateAdjoins ? Math.min(box.bottom + 120, dateBox.bottom) : box.bottom;
       const left = Math.max(box.left, 0);
       const right = Math.min(box.right, width);
       const top = Math.max(box.top, 0);
-      const bottom = Math.min(sourceBottom, height);
+      const bottom = Math.min(box.bottom, height);
       if (right <= left || bottom <= top) return;
-      const fadeLength = Math.min(160, Math.max(90, sceneBlend * 0.7));
       snowBounds.push({
         left, top, width: right - left, height: bottom - top,
-        sourceTop: box.top, sourceBottom, mainBottom: box.bottom,
-        fadeStart: dateAdjoins ? Math.max(box.top, dateBox.top) : box.bottom - fadeLength,
-        fadeIn: isHero ? 70 : (isEvening || isDate) ? Math.max(sceneBlend, fadeLength) : 54,
-        fadeOut: isDate ? sceneBlend : (isHero || isEvening) ? fadeLength : 54,
-        hero: isHero, carry: Boolean(dateAdjoins),
-        intensity: isHero ? 0.9 : isEvening ? 0.56 : isQuiet ? 0.45 : 0.76,
-        density: isHero ? 1 : isEvening ? 0.9 : isQuiet ? 0.32 : 0.72,
-        color: dark ? "#ffffff" : "#6e8caa",
+        sourceTop: box.top, sourceBottom: box.bottom,
+        hero: isHero, dark,
       });
     });
-    snowTarget = snowBounds.length ? 1 : 0;
+    // The field belongs to the viewport. Sections only inform its silver/white
+    // palette; they never clip it, thin it out or switch it off at a seam.
+    snowTarget = width > 0 && height > 0 ? 1 : 0;
     dirty = false;
   }
 
-  function snowAt(flake, box) {
-    if (flake.x < box.left || flake.x > box.left + box.width
-      || flake.y < box.sourceTop || flake.y > box.sourceBottom || flake.rank > box.density) return 0;
-    let alpha = smoothstep((flake.y - box.sourceTop) / box.fadeIn);
-    if (box.hero && box.carry) {
-      if (flake.y > box.mainBottom) {
-        if (!flake.carry) return 0;
-        alpha *= 0.28 * (1 - smoothstep((flake.y - box.mainBottom)
-          / Math.max(1, box.sourceBottom - box.mainBottom)));
-      } else if (flake.y > box.fadeStart) {
-        const fade = smoothstep((flake.y - box.fadeStart)
-          / Math.max(1, box.mainBottom - box.fadeStart));
-        alpha *= 1 - fade * (flake.carry ? 0.72 : 1);
-      }
-    } else {
-      alpha *= smoothstep((box.sourceBottom - flake.y) / box.fadeOut);
-    }
-    return alpha * box.intensity;
+  function snowDarkness(flake) {
+    let darkness = 0;
+    snowBounds.forEach((box) => {
+      if (flake.x < box.left || flake.x > box.left + box.width
+        || flake.y < box.top || flake.y > box.top + box.height) return;
+      const entry = box.hero ? 1 : smoothstep((flake.y - box.sourceTop) / sceneBlend);
+      const tone = box.dark ? smoothstep((box.sourceBottom - flake.y) / (sceneBlend * 1.5)) : 0;
+      darkness += (tone - darkness) * entry;
+    });
+    return darkness;
   }
 
   function syncHeroReplay(hero, box) {
@@ -500,7 +481,7 @@
     // Small cached light textures: a bright pin-point, a fading halo, and faint
     // tapered rays. The crystalline shape only emerges during a passing glint.
     // Gradients are made once, never rebuilt in the animation loop.
-    const colors = { night: [163, 197, 238], day: [106, 143, 181], white: [255, 255, 255] };
+    const colors = { night: [163, 197, 238], day: [83, 119, 159], white: [255, 255, 255] };
     Object.entries(colors).forEach(([name, channels]) => {
       const rgba = (alpha) => `rgba(${channels.join(",")},${alpha})`;
       glitterSprites[name] = {};
@@ -511,10 +492,10 @@
         if (kind === "glow") {
           const light = paint.createRadialGradient(32, 32, 0, 32, 32, 32);
           light.addColorStop(0, rgba(1));
-          light.addColorStop(0.09, rgba(0.98));
-          light.addColorStop(0.18, rgba(0.32));
-          light.addColorStop(0.4, rgba(0.04));
-          light.addColorStop(0.78, rgba(0));
+          light.addColorStop(0.14, rgba(0.98));
+          light.addColorStop(0.28, rgba(0.52));
+          light.addColorStop(0.5, rgba(0.12));
+          light.addColorStop(0.85, rgba(0));
           paint.fillStyle = light;
           paint.fillRect(0, 0, 64, 64);
         } else {
@@ -550,11 +531,8 @@
     canvas.hidden = false;
     snowOpacity += (snowTarget - snowOpacity) * Math.min(1, delta * 3.5);
     context.clearRect(0, 0, width, height);
-    // One field crosses every section; per-section color and density stay behind type.
-    context.save();
-    context.beginPath();
-    snowBounds.forEach((box) => context.rect(box.left, box.top, box.width, box.height));
-    context.clip();
+    // A continuous foreground field also crosses photographs and cards. The
+    // canvas cannot intercept input, and typed fields remain free of particles.
     flakes.forEach((flake) => {
       flake.y += flake.speed * delta;
       flake.angle += flake.spin * delta;
@@ -565,46 +543,43 @@
       }
       if (flake.x > width + 20) flake.x = -20;
       else if (flake.x < -20) flake.x = width + 20;
-      let edgeAlpha = 0;
-      let color = "#ffffff";
-      snowBounds.forEach((box) => {
-        const alpha = snowAt(flake, box);
-        if (alpha > edgeAlpha) {
-          edgeAlpha = alpha;
-          color = box.color;
-        }
-      });
-      const nearForm = quietZones.some((box) => flake.x >= box.left - 16 && flake.x <= box.right + 16
-        && flake.y >= box.top - 16 && flake.y <= box.bottom + 16);
-      if (nearForm) edgeAlpha *= flake.rank < 0.16 ? 0.2 : 0;
-      if (edgeAlpha < 0.003) return;
-      // Each crystal breathes and changes tint independently. Most stay faint;
-      // a few catch white light, then dissolve back into a cool silver hue.
-      const shimmer = (0.5 + Math.sin(now / flake.shimmerPeriod + flake.phase) * 0.5) ** 4;
+      const nearInput = quietZones.some((box) => flake.x >= box.left - 8 && flake.x <= box.right + 8
+        && flake.y >= box.top - 8 && flake.y <= box.bottom + 8);
+      if (nearInput) return;
+      // A visible baseline survives between glints. Pale surfaces keep a cool
+      // silver tint; matching light footprints avoid hollow, bubble-like rings.
+      const darkness = snowDarkness(flake);
+      const shimmer = (0.5 + Math.sin(now / flake.shimmerPeriod + flake.phase) * 0.5) ** 2;
       const tint = 0.5 + Math.sin(now / flake.tintPeriod + flake.tintPhase) * 0.5;
-      const white = tint * 0.65 + shimmer * 0.35;
-      const brightness = flake.alpha * (0.24 + shimmer * 0.64) + 0.3 * shimmer ** 3;
-      const alpha = snowOpacity * edgeAlpha * Math.min(0.88, brightness);
-      const cold = glitterSprites[color === "#ffffff" ? "night" : "day"];
-      const halo = flake.radius * 2.5;
+      const white = 0.25 + tint * 0.3 + shimmer * 0.45;
+      const brightness = flake.alpha * (0.6 + shimmer * 0.45) + 0.2 * shimmer ** 2;
+      const alpha = snowOpacity * Math.min(0.98, brightness);
+      const halo = flake.radius * 2.6;
+      const core = halo * (1 - darkness * 0.3);
+      const aspect = 0.65 + darkness * 0.35;
       context.save();
       context.translate(flake.x, flake.y);
       context.rotate(flake.angle);
-      context.globalAlpha = alpha * (1 - white * 0.65);
-      context.drawImage(cold.glow, -halo, -halo, halo * 2, halo * 2);
-      context.globalAlpha = alpha * white;
-      context.drawImage(glitterSprites.white.glow, -halo, -halo, halo * 2, halo * 2);
-      if (shimmer > 0.35 && flake.layer > 0) {
-        const ray = flake.radius * (1.35 + shimmer * 0.45);
-        const glint = smoothstep((shimmer - 0.35) / 0.65);
-        context.globalAlpha = alpha * glint * (1 - white) * 0.7;
-        context.drawImage(cold.rays, -ray, -ray, ray * 2, ray * 2);
+      if (darkness < 1) {
+        context.globalAlpha = alpha * (1 - darkness) * (0.85 - white * 0.1);
+        context.drawImage(glitterSprites.day.glow, -halo, -halo * aspect, halo * 2, halo * aspect * 2);
+      }
+      if (darkness > 0) {
+        context.globalAlpha = alpha * darkness * (0.62 - white * 0.18);
+        context.drawImage(glitterSprites.night.glow, -halo, -halo, halo * 2, halo * 2);
+      }
+      context.globalAlpha = alpha * (0.25 + white * 0.35 + darkness * 0.4);
+      context.drawImage(glitterSprites.white.glow, -core, -core * aspect, core * 2, core * aspect * 2);
+      if (flake.layer > 0) {
+        const ray = flake.radius * (1.6 + shimmer * 0.55);
+        const glint = 0.2 + smoothstep((shimmer - 0.1) / 0.9) * 0.8;
+        context.globalAlpha = alpha * glint * (1 - darkness) * 0.8;
+        context.drawImage(glitterSprites.day.rays, -ray, -ray, ray * 2, ray * 2);
         context.globalAlpha = alpha * glint * (0.4 + white * 0.6);
         context.drawImage(glitterSprites.white.rays, -ray, -ray, ray * 2, ray * 2);
       }
       context.restore();
     });
-    context.restore();
   }
 
   function tick(now) {
