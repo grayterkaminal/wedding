@@ -3,6 +3,7 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFile, appendFile, mkdir, stat } from "node:fs/promises";
+import { createReadStream } from "node:fs";
 import { randomUUID } from "node:crypto";
 import vm from "node:vm";
 
@@ -102,6 +103,7 @@ const types = {
   ".png": "image/png",
   ".woff2": "font/woff2",
   ".ics": "text/calendar; charset=utf-8",
+  ".mp3": "audio/mpeg",
 };
 
 function json(res, status, value) {
@@ -292,10 +294,38 @@ const server = http.createServer(async (req, res) => {
     const ext = path.extname(file);
     if (!types[ext]) return json(res, 404, { ok: false });
 
-    res.writeHead(200, {
+    const headers = {
       "Content-Type": types[ext],
       "Cache-Control": "no-cache",
-    });
+      "Accept-Ranges": "bytes",
+    };
+
+    // Safari воспроизводит аудио только при поддержке запросов по частям.
+    const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || "");
+    if (range && (range[1] || range[2])) {
+      const size = info.size;
+      let start = range[1] ? Number(range[1]) : size - Number(range[2]);
+      let end = range[1] && range[2] ? Number(range[2]) : size - 1;
+      start = Math.max(0, start);
+      end = Math.min(end, size - 1);
+
+      if (start > end) {
+        res.writeHead(416, { "Content-Range": `bytes */${size}` });
+        return res.end();
+      }
+
+      res.writeHead(206, {
+        ...headers,
+        "Content-Range": `bytes ${start}-${end}/${size}`,
+        "Content-Length": end - start + 1,
+      });
+      if (req.method === "HEAD") return res.end();
+      return createReadStream(file, { start, end })
+        .on("error", () => res.destroy())
+        .pipe(res);
+    }
+
+    res.writeHead(200, headers);
 
     if (req.method === "HEAD") return res.end();
     res.end(await readFile(file));
