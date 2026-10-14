@@ -78,8 +78,8 @@
       left > 0
         ? `До нашей встречи ${left} ${word}`
         : left === 0
-          ? "Сегодня наш день ♡"
-          : "Спасибо, что были с нами ♡";
+          ? "Сегодня наш день"
+          : "Спасибо, что были с нами";
   }
   updateCountdown();
   setInterval(updateCountdown, 60000);
@@ -125,9 +125,11 @@
     });
   });
 
-  for (const c of C.contacts) {
-    const el = make("article", `contact reveal${c.photo ? "" : " contact--text"}`);
+  for (const [index, c] of C.contacts.entries()) {
+    const direction = index % 2 ? "reveal-from-right" : "reveal-from-left";
+    const el = make("article", `contact reveal${c.photo ? ` photo-reveal ${direction}` : " contact--text"}`);
     if (c.photo) {
+      const portrait = make("div", "contact-portrait photo-window");
       const img = make("img");
       img.src = `assets/images/${c.photo}`;
       img.alt = c.name;
@@ -135,7 +137,8 @@
       img.height = 174;
       img.loading = "lazy";
       img.style.objectPosition = c.position;
-      el.append(img);
+      portrait.append(img);
+      el.append(portrait);
     }
     const text = make("div", "contact-content");
     const a = make("a", "text-link");
@@ -144,9 +147,6 @@
       /(\+7)(\d{3})(\d{3})(\d{2})(\d{2})/,
       "$1 $2 $3-$4-$5",
     );
-    const arrow = make("span", "", "↗");
-    arrow.setAttribute("aria-hidden", "true");
-    a.append(arrow);
     const meta = make("div", "contact-meta");
     meta.append(make("p", "contact-role", c.role));
     if (c.when) meta.append(make("p", "contact-when", c.when));

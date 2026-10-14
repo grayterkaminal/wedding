@@ -100,7 +100,43 @@ body { overflow-x:clip; }
 .motion-ready .reveal { transform:translateY(var(--reveal-shift,18px)); transition:opacity 1s ease,transform 1.2s cubic-bezier(.2,.7,.2,1),filter 1s ease; transition-delay:var(--delay,0ms); filter:blur(3px); }
 .motion-ready .reveal.is-visible { filter:blur(0); transform:none; }
 .motion-ready .reveal:focus-within { opacity:1; filter:none; transform:none; }
+/* Photograph frames arrive from opposite sides; the crop settles independently. */
+.photo-window { display:block; overflow:hidden; border-radius:3px; }
+.photo-window > img { display:block; }
+.contact-portrait { width:max-content; max-width:100%; }
+.photo-reveal { --photo-travel:44px; --photo-direction:1; --photo-angle:0deg; }
+.reveal-from-left { --photo-direction:-1; }
+.venue-photo.photo-reveal { --photo-angle:1deg; }
+.motion-ready .photo-reveal { filter:none; transform:translate3d(calc(var(--photo-direction) * var(--photo-travel)),0,0) rotate(var(--photo-angle)); transition:opacity 1s ease,transform 1.45s cubic-bezier(.16,1,.3,1); transition-delay:var(--delay,0ms); }
+.motion-ready .photo-reveal.is-visible,.motion-ready .photo-reveal:focus-within { transform:rotate(var(--photo-angle)); }
+.motion-ready .photo-reveal .photo-window > img { transform:scale(1.055); transition:transform 1.9s cubic-bezier(.2,.65,.2,1); transition-delay:var(--delay,0ms); }
+.motion-ready .photo-reveal.is-visible .photo-window > img,.motion-ready .photo-reveal:focus-within .photo-window > img { transform:scale(1); }
+/* Contact text follows its portrait without creating nested scroll observers. */
+.motion-ready .photo-reveal .contact-content > * { opacity:0; transform:translateY(6px); transition:opacity .75s ease,transform .9s cubic-bezier(.2,.7,.2,1); transition-delay:calc(var(--delay,0ms) + 90ms); }
+.motion-ready .photo-reveal .contact-content > :nth-child(2) { transition-delay:calc(var(--delay,0ms) + 130ms); }
+.motion-ready .photo-reveal .contact-content > :nth-child(3) { transition-delay:calc(var(--delay,0ms) + 170ms); }
+.motion-ready .photo-reveal .contact-content > :nth-child(4) { transition-delay:calc(var(--delay,0ms) + 210ms); }
+.motion-ready .photo-reveal.is-visible .contact-content > *,.motion-ready .photo-reveal:focus-within .contact-content > * { opacity:1; transform:none; }
+.motion-ready .photo-reveal:focus-within,.motion-ready .photo-reveal:focus-within .photo-window > img,.motion-ready .photo-reveal:focus-within .contact-content > * { transition:none; }
+/* Hollow diamonds stay fixed; their fine lines unfold outwards from the centre. */
+.motion-ready .reveal.diamond-divider::before,.motion-ready .reveal.diamond-divider::after,.motion-ready .reveal .diamond-divider::before,.motion-ready .reveal .diamond-divider::after { transform:scaleX(0); transition:transform 1.1s cubic-bezier(.2,.7,.2,1); transition-delay:calc(var(--delay,0ms) + 100ms); }
+.diamond-divider::before { transform-origin:right center; }
+.diamond-divider::after { transform-origin:left center; }
+.motion-ready .reveal.is-visible.diamond-divider::before,.motion-ready .reveal.is-visible.diamond-divider::after,.motion-ready .reveal.is-visible .diamond-divider::before,.motion-ready .reveal.is-visible .diamond-divider::after { transform:scaleX(1); }
+/* SVG strokes cannot turn into coloured system emoji on phones. */
+.navigation-arrow { display:block; width:24px; height:36px; stroke:currentColor; stroke-width:1.2; stroke-linecap:round; stroke-linejoin:round; }
+.back-top { width:44px; height:44px; }
+.back-top .navigation-arrow { width:18px; height:26px; }
+.success-heart { display:block; width:60px; height:55px; margin:0 auto; color:#90aabe; stroke:currentColor; stroke-width:1.2; stroke-linejoin:round; }
+.button:active,.header-rsvp:active { box-shadow:inset 0 2px 8px #102b4a30; }
+.text-link { text-decoration:none; }
+.text-link:active { color:#122b4a; border-bottom-color:currentColor; }
 .motion-asleep .scene-glow,.motion-asleep .hero-scroll span,.motion-asleep .scene-image::after,.motion-asleep .header-rsvp::before { animation-play-state:paused !important; }
+@media (max-width:760px) {
+  .photo-reveal { --photo-travel:24px; }
+  .motion-ready .photo-reveal .photo-window > img { transform:scale(1.035); }
+  .motion-ready .photo-reveal.is-visible .photo-window > img,.motion-ready .photo-reveal:focus-within .photo-window > img { transform:scale(1); }
+}
 @media (min-width:601px) and (max-width:1000px) {
   .hero { height:1100px; }
   .hero-copy { padding-top:90px; }
@@ -186,6 +222,8 @@ body { overflow-x:clip; }
   .hero-intro,.hero-hearts,.hero-name,.hero-amp,.hero-scroll,.hero-scroll span,.scene-glow,.scene-image::after { animation:none !important; opacity:1 !important; filter:none !important; transform:none; }
   .scene-glow,.scene-image::after { display:none; }
   .motion-ready .reveal { opacity:1; transform:none; filter:none; transition:none; }
+  .motion-ready .photo-reveal .photo-window > img,.motion-ready .photo-reveal .contact-content > * { opacity:1; transform:none; transition:none; }
+  .motion-ready .reveal.diamond-divider::before,.motion-ready .reveal.diamond-divider::after,.motion-ready .reveal .diamond-divider::before,.motion-ready .reveal .diamond-divider::after { transform:none; transition:none; }
   .header-rsvp::before { animation:none; opacity:.3; }
 }
 @media print {
@@ -194,6 +232,8 @@ body { overflow-x:clip; }
   .hero-copy,.date-copy,.atmosphere-inner { padding:20px; width:100%; }
   .date-actions { position:static; margin-top:35px; }
   .reveal { opacity:1 !important; filter:none !important; transform:none !important; }
+  .photo-reveal .photo-window > img,.photo-reveal .contact-content > * { opacity:1 !important; transform:none !important; transition:none !important; }
+  .diamond-divider::before,.diamond-divider::after { transform:none !important; }
 }
 /* Keep global snow between the scenery and readable live type. */
 .palace-scene { isolation:auto; }

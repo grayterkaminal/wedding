@@ -92,6 +92,26 @@
       || Boolean(element.querySelector("details[open], [aria-expanded='true']"));
   }
 
+  function setRevealDelays() {
+    // Small groups read as one entrance, without making a newly reached mobile
+    // paragraph wait for content that has already scrolled out of view.
+    const maxDelay = mobile ? 180 : 360;
+    document.querySelectorAll(
+      ".intro-copy, .date-copy, .atmosphere-inner, .section-heading, .venue-heading, "
+      + ".chat-grid > div, .rsvp-copy, .timeline, .contacts-grid, .wishes-grid",
+    ).forEach((group) => {
+      group.querySelectorAll(".reveal").forEach((element, index) => {
+        element.style.setProperty("--delay", `${Math.min(index * 75, 300, maxDelay)}ms`);
+      });
+    });
+    document.querySelectorAll(".reveal[data-reveal-delay]").forEach((element) => {
+      const delay = Number(element.dataset.revealDelay);
+      if (Number.isFinite(delay)) {
+        element.style.setProperty("--delay", `${clamp(delay, 0, maxDelay)}ms`);
+      }
+    });
+  }
+
   function setupReveals() {
     revealObserver?.disconnect();
     if (reduced.matches || !("IntersectionObserver" in window)) {
@@ -133,13 +153,7 @@
       });
     }, { threshold: [0, 0.015], rootMargin: "0px" });
 
-    document.querySelectorAll(
-      ".intro-copy, .date-copy, .atmosphere-inner, .timeline, .contacts-grid, .wishes-grid",
-    ).forEach((group) => {
-      group.querySelectorAll(".reveal").forEach((element, index) => {
-        element.style.setProperty("--delay", `${Math.min(index, 4) * 75}ms`);
-      });
-    });
+    setRevealDelays();
     document.querySelectorAll(".reveal").forEach((element) => {
       const shown = element.classList.contains("is-visible");
       revealStates.set(element, {
@@ -258,9 +272,11 @@
     const nextWidth = root.clientWidth || window.innerWidth;
     const nextHeight = window.innerHeight || root.clientHeight;
     const changed = width !== nextWidth || height !== nextHeight;
+    const wasMobile = mobile;
     width = nextWidth;
     height = nextHeight;
     mobile = width < 760;
+    if (wasMobile !== mobile) setRevealDelays();
     sceneBlend = parseFloat(getComputedStyle(root).getPropertyValue("--scene-blend"))
       || (width > 1000 ? 200 : width > 600 ? 160 : 120);
     if (width <= 1000 || !finePointer.matches) resetPointers();
