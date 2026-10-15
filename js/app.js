@@ -175,12 +175,21 @@
 
   // Анкета. Сообщение об успехе появляется только после подтверждения сервера.
   const form = $("#guest-form"),
+    guestName = $("#guest-name"),
     status = $("#form-status"),
     submit = $(".submit-button"),
     copy = $("#copy-response");
   const draftKey = "wedding-2026-guest-draft";
   let lastPayload = "",
     requestId = "";
+  function validateGuestName() {
+    guestName.setCustomValidity(
+      guestName.validity.patternMismatch
+        ? "Укажите имя и фамилию — минимум два слова."
+        : "",
+    );
+  }
+  guestName.addEventListener("invalid", validateGuestName);
   function payload() {
     const data = new FormData(form);
     return {
@@ -210,13 +219,16 @@
       });
     }
   } catch {}
+  validateGuestName();
   updateAttendance();
   form.addEventListener("input", () => {
+    validateGuestName();
     updateAttendance();
     store.set(draftKey, JSON.stringify(payload()));
   });
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    validateGuestName();
     if (!form.reportValidity()) return;
     const data = payload(),
       serialized = JSON.stringify(data);
@@ -279,6 +291,7 @@
   });
   $("#another-guest").addEventListener("click", () => {
     form.reset();
+    validateGuestName();
     updateAttendance();
     lastPayload = "";
     requestId = "";

@@ -119,7 +119,7 @@ function valid(d) {
     d &&
     typeof d === "object" &&
     typeof d.name === "string" &&
-    d.name.trim().length >= 2 &&
+    /^\s*\S+(?:\s+\S+)+\s*$/.test(d.name) &&
     d.name.length <= 100 &&
     ["yes", "no"].includes(d.attendance) &&
     Array.isArray(d.drinks) &&

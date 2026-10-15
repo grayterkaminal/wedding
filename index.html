@@ -419,9 +419,10 @@
                 name="name"
                 type="text"
                 autocomplete="name"
-                placeholder="Как к вам обращаться"
+                placeholder="Например, Иван Иванов"
                 required
-                minlength="2"
+                pattern="\s*\S+(?:\s+\S+)+\s*"
+                title="Укажите имя и фамилию — минимум два слова."
                 maxlength="100"
               />
               <fieldset>
