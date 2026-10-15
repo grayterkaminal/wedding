@@ -185,7 +185,7 @@
   function validateGuestName() {
     guestName.setCustomValidity(
       guestName.validity.patternMismatch
-        ? "Укажите имя и фамилию — минимум два слова."
+        ? "Минимум два слова"
         : "",
     );
   }
