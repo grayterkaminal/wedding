@@ -3,9 +3,7 @@
 window.WEDDING = {
   date: "2026-12-12",
   chatUrl: "https://t.me/+PGuwlEBGfcY3NWIy",
-  mapUrl:
-    "https://yandex.ru/maps/?text=" +
-    encodeURIComponent("Немчиновка Парк, 2-я Запрудная улица, 46"),
+  mapUrl: "https://yandex.ru/maps/org/nemchinovka_park/1065982702/",
   rsvpEndpoint: "/api/rsvp",
   contacts: [
     {
